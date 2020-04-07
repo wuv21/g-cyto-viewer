@@ -7,17 +7,17 @@
       right
     >
       <v-list dense>
-        <v-list-item v-for="(ab, i) in abs" :key="i">
-          <v-list-item-action>
-            <v-checkbox></v-checkbox>
-          </v-list-item-action>
-
-          <v-list-item-content>
-            <v-list-item-title v-text="ab"></v-list-item-title>
-            <!-- <v-list-item-subtitle>Notify me about updates to apps or games that I downloaded</v-list-item-subtitle> -->
-          </v-list-item-content>
-        </v-list-item>
-
+        <v-list-item-group
+          v-model="selAbs"
+          :multiple="true"
+          color="indigo"
+        >
+          <v-list-item v-for="(ab, i) in abs" :key="i">
+            <v-list-item-content>
+              <v-list-item-title v-text="ab"></v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list-item-group>
       </v-list>
     </v-navigation-drawer>
 
@@ -43,12 +43,14 @@
 
       <v-container fluid>
         <v-row>
-          <v-col cols="6" text-center justify-center>
+          <v-col v-show="abs.length != 0" cols="4" text-center justify-center>
+              <h3>Colored by cluster</h3>
               <div id="tsne"></div>
           </v-col>
 
-          <v-col cols="6" text-center justify-center>
-              <p>histogram placeholder</p>
+          <v-col v-show="abs.length != 0" cols="8" text-center justify-center>
+            <h3>Colored by scaled expression level</h3>
+              <div id="tsneExpression"></div>
           </v-col>
         </v-row>
       </v-container>
@@ -61,7 +63,7 @@
     >
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.03.31</span>
+      <span>Updated 2020.04.07</span>
     </v-footer>
   </v-app>
 </template>
@@ -69,29 +71,33 @@
 <script>
 import * as d3 from "d3";
 import _ from "lodash";
+import ScatterPlot from "./graphs/scatterplot.js";
 
 export default {
   name: "inspire",
   data: () => ({
       drawerRight: null,
       title: "gCytoViewer",
-      data_file: null,
+      dataFile: null,
       header: [],
       abs: [],
-      data_cite: [],
+      selAbs: [],
+      dataCite: [],
+      dataTsne: [],
+      fillScales: [],
   }),
   watch: {
-    data_file(d) {
-      let d_mat = d.split("\n")
-      this.header = d_mat[0].split("\t")
+    dataFile(d) {
+      let dMat = d.split("\n")
+      this.header = dMat[0].split("\t")
 
-      d_mat = _.map(d_mat, (x) => {
+      dMat = _.map(dMat, (x) => {
         return(x.split("\t"))
       });
 
       // check last row
-      if (d_mat[d_mat.length - 1].length == 1) {
-        d_mat.pop();
+      if (dMat[dMat.length - 1].length == 1) {
+        dMat.pop();
       }
 
       const getNth = function(arrayList, n, h) {
@@ -109,90 +115,160 @@ export default {
         return(allNth);
       };
 
+      // reformat
       this.header.forEach((h, i) => {
-        this.data_cite[h] = getNth(d_mat.slice(1, d_mat.length), i, h)
+        this.dataCite[h] = getNth(dMat.slice(1, dMat.length), i, h)
       });
 
-      this.abs = _.without(this.header, "barcode", "cluster", "tSNE_1", "tSNE_2");
+      // get abs
+      const metaInfoTags = ["barcode", "cluster", "tSNE_1", "tSNE_2"]
+      this.abs = _.without(this.header, ...metaInfoTags);
+
+      // reformat to d3 friendly
+      const dataCiteKeys = Object.keys(this.dataCite);
+      for (let i = 0; i < this.dataCite["tSNE_1"].length; i++) {
+        const d = {};
+        dataCiteKeys.forEach((x) => {
+          d[x] = this.dataCite[x][i]
+        });
+        this.dataTsne.push(d)
+      }
+
+      // precalculate d3 scales
+      this.abs.forEach((a) => {
+        const minAb = _.min(this.dataCite[a])
+        const maxAb = _.max(this.dataCite[a])
+
+        this.fillScales[a] = d3.scaleSequential(d3.interpolateReds).domain([minAb, maxAb])
+      });
 
       this.makeTsne();
+    },
+
+    selAbs() {
+      this.makeTsneExpression();
     }
   },
   methods: {
     onFileChange(e) {
-      let reader = new FileReader();
+      const reader = new FileReader();
       reader.onload = (event) => {
-        this.data_file = event.target.result;
+        this.dataFile = event.target.result;
       }
 
       reader.readAsText(e)
     },
+
     makeTsne() {
-      const margin = {top: 10, right: 30, bottom: 30, left: 60};
-      const width = 580 - margin.left - margin.right;
-      const height = 520 - margin.top - margin.bottom;
+      const final_data = [{
+        key: "cluster_tsne",
+        title: "",
+        type: "cluster",
+        values: this.dataTsne
+      }];
 
-      const tsne_data = [];
-      this.data_cite["tSNE_1"].forEach((x, i) => {
-        const d = {
-          x: x,
-          y: this.data_cite["tSNE_2"][i],
-          cluster: this.data_cite["cluster"][i]
-        };
-
-        tsne_data.push(d);
-      })
-
-      const svg = d3
-        .select("#tsne")
-        .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-
-      const domainPadScale = 0.1;
-
-      // Add X axis
-      const minX = _.min(_.map(tsne_data, (d) => {return(d.x)}))
-      const maxX = _.max(_.map(tsne_data, (d) => {return(d.x)}))
-
-      const x = d3.scaleLinear()
-        .domain([minX - Math.abs(minX * domainPadScale), maxX + Math.abs(maxX * domainPadScale)])
-        .range([0, width]);
-
-      svg.append("g")
-        .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x));
-
-      // Add Y axis
-      const minY = _.min(_.map(tsne_data, (d) => {return(d.y)}))
-      const maxY = _.max(_.map(tsne_data, (d) => {return(d.y)}))
-
-      const y = d3.scaleLinear()
-        .domain([minY - Math.abs(minY * domainPadScale), maxY + Math.abs(maxY * domainPadScale)])
-        .range([0, height]);
-
-      svg.append("g")
-        .call(d3.axisLeft(y));
-
-      // Color scale
-      const uniq_clusts = _.uniq(_.map(tsne_data, (d) => {return(d.cluster)}))
+      const uniq_clusts = _.uniq(_.map(this.dataTsne, (d) => {return(d.cluster)}))
       const clusterScale = d3.scaleOrdinal(d3.schemePaired)
         .domain(uniq_clusts)
 
-      // Add points
-      svg.append("g")
-        .selectAll(".cells")
-        .data(tsne_data)
-        .enter()
-        .append("circle")
-        .attr("cx", (d) => {return(x(d.x))})
-        .attr("cy", (d) => {return(y(d.y))})
-        .attr("r", 1.5)
-        .attr("class", "cells")
-        .style("fill", (d) => {return(clusterScale(d.cluster))});
+      const scatter = ScatterPlot()
+        .width(500)
+        .height(500)
+        .radius(1)
+        .xVar("tSNE_1")
+        .yVar("tSNE_2")
+        .fillVar("cluster")
+        .fillScale(clusterScale)
+
+        
+      const draw = function() {
+        const charts = d3.select("#tsne")
+          .selectAll(".chart")
+          .data(final_data)
+
+        charts.enter()
+          .append("div")
+          .attr("class", "chart")
+          .merge(charts)
+          .call(scatter);
+
+        charts.exit().remove()
+      }
+
+      draw();
+    },
+
+    makeTsneExpression() {
+      const tsneExpressionData = _.map(this.selAbs, (a) => {
+        const d = {
+          type: "expression",
+          key: a,
+          title: this.abs[a],
+          fillScale: this.fillScales[this.abs[a]],
+          values: this.dataTsne
+        };
+
+        return d;
+      });
+
+      const scatter = ScatterPlot()
+        .width(250)
+        .height(250)
+        .radius(0.5)
+        .xVar("tSNE_1")
+        .yVar("tSNE_2");
+
+
+      const draw = function() {
+        const charts = d3.select("#tsneExpression")
+          .selectAll(".chartTsneExpression")
+          .data(tsneExpressionData, (d) => {return d.key});
+
+        charts.enter()
+          .append("div")
+          .attr("class", "chartTsneExpression")
+          .merge(charts)
+          .call(scatter);
+
+        charts.exit().remove()
+      }
+
+      draw();
     }
   }
 }
 </script>
+
+<style>
+.axis line,
+.axis path {
+  fill: none;
+  stroke: #000;
+}
+
+.axis-title {
+  text-anchor: middle;
+  font-size: 12px;
+  color: #000;
+}
+
+.chart {
+  display: inline-block;
+}
+
+.chartTsneExpression {
+  display: inline-block;  
+}
+
+div.tooltip-donut {
+    position: absolute;
+    text-align: center;
+    padding: .5rem;
+    background: #FFFFFF;
+    color: #313639;
+    border: 1px solid #313639;
+    border-radius: 8px;
+    pointer-events: none;
+    font-size: 1.3rem;
+}
+</style>
