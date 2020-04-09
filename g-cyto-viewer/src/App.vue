@@ -1,5 +1,5 @@
 <template>
-  <v-app id="inspire">
+  <v-app id="gCytoViewer">
     <v-navigation-drawer
       v-model="drawerRight"
       app
@@ -24,7 +24,7 @@
     <v-app-bar
       app
       clipped-right
-      color="blue-grey"
+      color="teal"
       dark
     >
       <v-toolbar-title>{{title}}</v-toolbar-title>
@@ -39,26 +39,55 @@
               <v-file-input name="hi" accept=".tsv" label="Upload TSV data file" @change="onFileChange"></v-file-input>
             </v-col>
         </v-row>
-      </v-container>
 
-      <v-container fluid>
-        <v-row>
-          <v-col v-show="abs.length != 0" cols="4" text-center justify-center>
-              <h3>Colored by cluster</h3>
+        <v-row
+          align="start"
+          justify="space-around"
+        >
+          <v-col v-show="abs.length != 0" cols="5" text-center justify-center>
+              <p class="title">Colored by cluster</p>
               <div id="tsne"></div>
           </v-col>
 
-          <v-col v-show="abs.length != 0" cols="8" text-center justify-center>
-            <h3>Colored by scaled expression level</h3>
-              <div id="tsneExpression"></div>
+          <v-col v-show="abs.length != 0" text-center justify-center>
+            <p class="title">Colored by scaled expression level</p>
+
+            <v-switch
+              label="Enable threshold filter"
+              v-model="enableThresh"
+            ></v-switch>
+
+            <v-slider
+              v-model="expThresh"
+              label="Threshold"
+              hint="Select antibodies on right panel. Can enable minimum threshold filter to increase app responsiveness."
+              persistent-hint
+              thumb-label="always"
+              :thumb-size="24"
+              :disabled="!enableThresh"
+              :min="minThresh"
+              :max="maxThresh"
+              step="0.1"
+              type="number"
+            ></v-slider>
+
+            <div id="tsneExpression"></div>
           </v-col>
+        </v-row>
+
+        <v-row v-show="abs.length != 0">
+          <v-col>
+            <p class="title">Expression by cluster</p>
+            <p class="body-2">Ridgeline plots coming soon...</p>
+          </v-col>
+
         </v-row>
       </v-container>
     </v-content>
 
     <v-footer
       app
-      color="blue-grey"
+      color="teal"
       class="white--text"
     >
       <span>Vincent Wu | Betts Lab</span>
@@ -74,7 +103,7 @@ import _ from "lodash";
 import ScatterPlot from "./graphs/scatterplot.js";
 
 export default {
-  name: "inspire",
+  name: "gCytoViewer",
   data: () => ({
       drawerRight: null,
       title: "gCytoViewer",
@@ -84,7 +113,12 @@ export default {
       selAbs: [],
       dataCite: [],
       dataTsne: [],
+      dataTsneExpression: [],
       fillScales: [],
+      enableThresh: false,
+      expThresh: 0,
+      minThresh: 0,
+      maxThresh: 1,
   }),
   watch: {
     dataFile(d) {
@@ -138,7 +172,7 @@ export default {
       this.abs.forEach((a) => {
         const minAb = _.min(this.dataCite[a])
         const maxAb = _.max(this.dataCite[a])
-
+        
         this.fillScales[a] = d3.scaleSequential(d3.interpolateReds).domain([minAb, maxAb])
       });
 
@@ -146,7 +180,22 @@ export default {
     },
 
     selAbs() {
+      this.makeTsneExpressionData();
       this.makeTsneExpression();
+    },
+
+    enableThresh() {
+      if (this.selAbs.length != 0) {
+        this.makeTsneExpressionData();
+        this.makeTsneExpression();
+      }
+    },
+
+    expThresh() {
+      if (this.selAbs.length != 0) {
+        this.makeTsneExpressionData();
+        this.makeTsneExpression();
+      }
     }
   },
   methods: {
@@ -198,31 +247,52 @@ export default {
       draw();
     },
 
-    makeTsneExpression() {
-      const tsneExpressionData = _.map(this.selAbs, (a) => {
+    makeTsneExpressionData() {
+      // TODO add filtering step here...
+      // TODO optimize this filtering step...set a previous state flag to avoid continously creating new objects
+      this.dataTsneExpression = _.map(this.selAbs, (a) => {
         const d = {
           type: "expression",
           key: a,
           title: this.abs[a],
-          fillScale: this.fillScales[this.abs[a]],
-          values: this.dataTsne
+          fillScale: this.fillScales[this.abs[a]]
         };
+
+        if (this.enableThresh) {
+          d.values = _.filter(this.dataTsne, (d) => {
+            return(d[this.abs[a]] >= this.expThresh)
+          })
+        } else {
+          d.values = _.map(this.dataTsne, (d) => {
+            const new_d = {
+              tSNE_1: d.tSNE_1,
+              tSNE_2: d.tSNE_2,
+              barcode: d.barcode
+            };
+
+            new_d[this.abs[a].toString()] = d[this.abs[a]];
+
+            return new_d;
+          });
+        }
 
         return d;
       });
+    },
 
+    makeTsneExpression() {
       const scatter = ScatterPlot()
         .width(250)
         .height(250)
         .radius(0.5)
+        .constrainAxes(this.dataTsne)
         .xVar("tSNE_1")
         .yVar("tSNE_2");
 
-
-      const draw = function() {
+      const draw = function(data) {
         const charts = d3.select("#tsneExpression")
           .selectAll(".chartTsneExpression")
-          .data(tsneExpressionData, (d) => {return d.key});
+          .data(data, (d) => {return d.key});
 
         charts.enter()
           .append("div")
@@ -233,7 +303,7 @@ export default {
         charts.exit().remove()
       }
 
-      draw();
+      draw(this.dataTsneExpression);
     }
   }
 }
@@ -243,7 +313,7 @@ export default {
 .axis line,
 .axis path {
   fill: none;
-  stroke: #000;
+  stroke: #aeaeae;
 }
 
 .axis-title {

@@ -16,6 +16,7 @@ export default function ScatterPlot() {
         xVar = "tSNE_1",
         yVar = "tSNE_2",
         title = 'Chart title',
+        constrainAxes = null,
         radius = 2,
         margin = {
             left: 70,
@@ -85,13 +86,20 @@ export default function ScatterPlot() {
             const yAxis = d3.axisLeft();
 
             // Calculate x and y scales
+            let axesData = null;
+            if (constrainAxes != null) {
+                axesData = constrainAxes
+            } else {
+                axesData = data.values;
+            }
+
             const padScale = 1.25;
-            const xMax = d3.max(data.values, (d) => +d[xVar]) * padScale;
-            const xMin = d3.min(data.values, (d) => +d[xVar]) * padScale;
+            const xMax = d3.max(axesData, (d) => +d[xVar]) * padScale;
+            const xMin = d3.min(axesData, (d) => +d[xVar]) * padScale;
             xScale.range([0, chartWidth]).domain([xMin, xMax]);
 
-            const yMin = d3.min(data.values, (d) => +d[yVar]) * padScale;
-            const yMax = d3.max(data.values, (d) => +d[yVar]) * padScale;
+            const yMin = d3.min(axesData, (d) => +d[yVar]) * padScale;
+            const yMax = d3.max(axesData, (d) => +d[yVar]) * padScale;
             yScale.range([chartHeight, 0]).domain([yMin, yMax]);
 
             // Update axes
@@ -175,6 +183,10 @@ export default function ScatterPlot() {
         fillScale = value;
         return chart;
     };
-
+    chart.constrainAxes = function(value) {
+        if (!arguments.length) return constrainAxes;
+        constrainAxes = value;
+        return chart;
+    };
     return chart;
 }
