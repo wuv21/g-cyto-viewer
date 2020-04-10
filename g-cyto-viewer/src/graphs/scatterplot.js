@@ -123,6 +123,7 @@ export default function ScatterPlot() {
                 .attr('cx', (d) => xScale(d[xVar]))
                 .attr('cy', (d) => yScale(d[yVar]))
                 .attr('r', radius)
+                .attr("id", (d) => d.barcode)
                 // Transition properties of the + update selections
                 .merge(circles)
                 // .transition()
@@ -174,6 +175,22 @@ export default function ScatterPlot() {
         yVar = value;
         return chart;
     };
+    chart.xScale = function(value) {
+        if (!arguments.length) return xScale;
+        xScale = value;
+        return chart;
+    };
+    chart.yScale = function(value) {
+        if (!arguments.length) return xScale;
+        xScale = value;
+        return chart;
+    };
+    chart.yVar = function(value) {
+        if (!arguments.length) return yVar;
+        yVar = value;
+        return chart;
+    };
+
     chart.fillVar = function(value) {
         if (!arguments.length) return fillVar;
         fillVar = value;

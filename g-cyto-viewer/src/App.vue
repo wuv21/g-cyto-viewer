@@ -104,6 +104,7 @@
 import * as d3 from "d3";
 import _ from "lodash";
 import ScatterPlot from "./graphs/scatterplot.js";
+import "./graphs/polybrush.js"
 
 export default {
   name: "gCytoViewer",
@@ -250,6 +251,31 @@ export default {
           .call(scatter);
 
         charts.exit().remove()
+
+        const brush = d3.polybrush()
+          .x(scatter.xScale())
+          .y(scatter.yScale())
+          .on("start", function() {
+            charts.selectAll(".selected").classed("selected", false);
+          })
+          .on("brush", function() {
+            d3.select("#tsne").selectAll("circle").classed("selected", function(d) {
+                //get the associated circle
+                const point = d3.select("#" + d.barcode);
+                if (brush.isWithinExtent(point.attr("cx"), point.attr("cy"))) {
+                  point.classed("selected", true);
+                  return true;
+                } else {
+                  point.classed("selected", false);
+                  return false;
+                }
+            });
+          });          
+
+        d3.select("#tsne")
+          .select(".scatterG")
+          .append("g")
+          .call(brush);
       }
 
       draw();
@@ -346,6 +372,10 @@ export default {
 
 .chartTsneExpression {
   display: inline-block;  
+}
+
+circle.selected {
+  fill: purple;
 }
 
 .ridgePlotExpression {
