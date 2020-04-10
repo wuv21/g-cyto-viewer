@@ -24,7 +24,7 @@
     <v-app-bar
       app
       clipped-right
-      color="teal"
+      color="light-blue darken-4"
       dark
     >
       <v-toolbar-title>{{title}}</v-toolbar-title>
@@ -38,6 +38,8 @@
             <v-col cols="4">
               <v-file-input name="hi" accept=".tsv" label="Upload TSV data file" @change="onFileChange"></v-file-input>
             </v-col>
+
+            <!-- TODO set up a column here for alerts -->
         </v-row>
 
         <v-row
@@ -77,8 +79,9 @@
 
         <v-row v-show="abs.length != 0">
           <v-col>
-            <p class="title">Expression by cluster</p>
-            <p class="body-2">Ridgeline plots coming soon...</p>
+            <p class="title">Polygonal gate coming soon...</p>
+            <div id="ridgePlotExpression"></div>
+            <p class="body-2">Will test my sanity</p>
           </v-col>
 
         </v-row>
@@ -87,7 +90,7 @@
 
     <v-footer
       app
-      color="teal"
+      color="light-blue darken-4"
       class="white--text"
     >
       <span>Vincent Wu | Betts Lab</span>
@@ -101,6 +104,7 @@
 import * as d3 from "d3";
 import _ from "lodash";
 import ScatterPlot from "./graphs/scatterplot.js";
+// import RidgePlot from "./graphs/ridgeplot.js";
 
 export default {
   name: "gCytoViewer",
@@ -115,6 +119,7 @@ export default {
       dataTsne: [],
       dataTsneExpression: [],
       fillScales: [],
+      absDensities: [],
       enableThresh: false,
       expThresh: 0,
       minThresh: 0,
@@ -173,6 +178,7 @@ export default {
         const minAb = _.min(this.dataCite[a])
         const maxAb = _.max(this.dataCite[a])
         
+        // fill scale
         this.fillScales[a] = d3.scaleSequential(d3.interpolateReds).domain([minAb, maxAb])
       });
 
@@ -182,6 +188,8 @@ export default {
     selAbs() {
       this.makeTsneExpressionData();
       this.makeTsneExpression();
+
+      this.makeRidgePlots();
     },
 
     enableThresh() {
@@ -258,23 +266,27 @@ export default {
           fillScale: this.fillScales[this.abs[a]]
         };
 
+        let data_ref = this.dataTsne;
         if (this.enableThresh) {
-          d.values = _.filter(this.dataTsne, (d) => {
+          const dataTsneFilt = _.filter(this.dataTsne, (d) => {
             return(d[this.abs[a]] >= this.expThresh)
-          })
-        } else {
-          d.values = _.map(this.dataTsne, (d) => {
-            const new_d = {
-              tSNE_1: d.tSNE_1,
-              tSNE_2: d.tSNE_2,
-              barcode: d.barcode
-            };
-
-            new_d[this.abs[a].toString()] = d[this.abs[a]];
-
-            return new_d;
           });
+
+          data_ref = dataTsneFilt;
         }
+
+        d.values = _.map(data_ref, (d) => {
+          const new_d = {
+            tSNE_1: d.tSNE_1,
+            tSNE_2: d.tSNE_2,
+            barcode: d.barcode,
+            ab: this.abs[a],
+            cluster: d.cluster,
+            expression: d[this.abs[a]]
+          };
+
+          return new_d;
+        });
 
         return d;
       });
@@ -304,7 +316,13 @@ export default {
       }
 
       draw(this.dataTsneExpression);
+    },
+
+
+    makeRidgePlots() {
+      console.log('hmmm');
     }
+
   }
 }
 </script>
@@ -328,6 +346,10 @@ export default {
 
 .chartTsneExpression {
   display: inline-block;  
+}
+
+.ridgePlotExpression {
+  display: inline-block;
 }
 
 div.tooltip-donut {

@@ -37,7 +37,7 @@ export default function ScatterPlot() {
             title = data.title;
 
             if (data.type === "expression") {
-                fillVar = data.title;
+                fillVar = "expression";
                 fillScale = data.fillScale;
             }
 
@@ -50,7 +50,8 @@ export default function ScatterPlot() {
                 .append("svg")
                 .attr('width', width)
                 .attr("height", height);
-
+            
+            // TODO fix title centering...
             // Title G
             svgEnter.append('text')
                 .attr('transform', 'translate(' + ((margin.left + chartWidth) / 2) + ',' + 20 + ')')
