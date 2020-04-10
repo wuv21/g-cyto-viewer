@@ -24,7 +24,7 @@
     <v-app-bar
       app
       clipped-right
-      color="light-blue darken-4"
+      :color="headerFooterColor"
       dark
     >
       <v-toolbar-title>{{title}}</v-toolbar-title>
@@ -90,7 +90,7 @@
 
     <v-footer
       app
-      color="light-blue darken-4"
+      :color="headerFooterColor"
       class="white--text"
     >
       <span>Vincent Wu | Betts Lab</span>
@@ -104,13 +104,13 @@
 import * as d3 from "d3";
 import _ from "lodash";
 import ScatterPlot from "./graphs/scatterplot.js";
-// import RidgePlot from "./graphs/ridgeplot.js";
 
 export default {
   name: "gCytoViewer",
   data: () => ({
       drawerRight: null,
       title: "gCytoViewer",
+      headerFooterColor: "blue-grey",
       dataFile: null,
       header: [],
       abs: [],
