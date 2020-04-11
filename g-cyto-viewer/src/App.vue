@@ -6,6 +6,16 @@
       clipped
       right
     >
+      <v-list-item>
+        <v-list-item-content>
+          <v-list-item-title class="title">
+            Antibodies
+          </v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+
+      <v-divider></v-divider>
+      
       <v-list dense>
         <v-list-item-group
           v-model="selAbs"
@@ -35,11 +45,65 @@
     <v-content>
       <v-container fluid>
           <v-row>
-            <v-col cols="4">
+            <v-col cols="5">
               <v-file-input name="hi" accept=".tsv" label="Upload TSV data file" @change="onFileChange"></v-file-input>
+              <div v-show="abs.length != 0">
+                <v-chip
+                  class="ma-2"
+                  color="indigo"
+                  text-color="white"
+                >
+                  <v-avatar left>
+                    <v-icon>mdi-flask-empty</v-icon>
+                  </v-avatar>
+                  {{abs.length}} antibodies
+                </v-chip>
+                
+                <v-chip
+                  class="ma-2"
+                  color="teal"
+                  text-color="white"
+                >
+                  <v-avatar left>
+                    <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
+                  </v-avatar>
+                  {{dataTsne.length}} cells
+                </v-chip>                           
+              </div>
             </v-col>
 
-            <!-- TODO set up a column here for alerts -->
+            <v-col v-show="abs.length != 0" cols="7" text-center justify-center>
+              <p class="title">Dashboard settings</p>
+              <v-row>
+                <v-col cols="6">
+                  <p class="subtitle-2">Random cell filter (work in progress)</p>
+                  <v-slider
+                    v-model="cellsUsed"
+                    class="align-center"
+                    :max="dataTsne.length"
+                    min="0"
+                    hide-details
+                  >
+                    <template v-slot:append>
+                      <v-text-field
+                        v-model="cellsUsed"
+                        class="ma-0 pa-0"
+                        hide-details
+                        single-line
+                        :max="dataTsne.length"
+                        min="0"
+                        type="number"
+                        style="width: 5em;"
+                      ></v-text-field>
+                    </template>
+                  </v-slider>
+                </v-col>
+
+                <v-col cols="4">
+                  <!-- <p class="subtitle-2">Eventually another setting</p> -->
+                </v-col>
+              </v-row>
+            </v-col>
         </v-row>
 
         <v-row
@@ -95,12 +159,13 @@
     >
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.04.07</span>
+      <span>Updated 2020.04.11</span>
     </v-footer>
   </v-app>
 </template>
 
 <script>
+import '@mdi/font/css/materialdesignicons.css';
 import * as d3 from "d3";
 import _ from "lodash";
 import ScatterPlot from "./graphs/scatterplot.js";
@@ -108,6 +173,9 @@ import "./graphs/polybrush.js"
 
 export default {
   name: "gCytoViewer",
+  icons: {
+    iconfont: "mdi"
+  },
   data: () => ({
       drawerRight: null,
       title: "gCytoViewer",
@@ -125,6 +193,7 @@ export default {
       expThresh: 0,
       minThresh: 0,
       maxThresh: 1,
+      cellsUsed: 0,
   }),
   watch: {
     dataFile(d) {
@@ -183,6 +252,9 @@ export default {
         this.fillScales[a] = d3.scaleSequential(d3.interpolateReds).domain([minAb, maxAb])
       });
 
+      // save other settings
+      this.cellsUsed = this.dataTsne.length;
+
       this.makeTsne();
     },
 
@@ -205,7 +277,12 @@ export default {
         this.makeTsneExpressionData();
         this.makeTsneExpression();
       }
-    }
+    },
+
+    cellsUsed() {
+      console.log('here');
+      // TODO redraw based on the cells used....
+    },
   },
   methods: {
     onFileChange(e) {
@@ -238,7 +315,6 @@ export default {
         .fillVar("cluster")
         .fillScale(clusterScale)
 
-        
       const draw = function() {
         const charts = d3.select("#tsne")
           .selectAll(".chart")
@@ -270,7 +346,7 @@ export default {
                   return false;
                 }
             });
-          });          
+          });
 
         d3.select("#tsne")
           .select(".scatterG")
@@ -383,14 +459,18 @@ circle.selected {
 }
 
 div.tooltip-donut {
-    position: absolute;
-    text-align: center;
-    padding: .5rem;
-    background: #FFFFFF;
-    color: #313639;
-    border: 1px solid #313639;
-    border-radius: 8px;
-    pointer-events: none;
-    font-size: 1.3rem;
+  position: absolute;
+  text-align: center;
+  padding: .5rem;
+  background: #FFFFFF;
+  color: #313639;
+  border: 1px solid #313639;
+  border-radius: 8px;
+  pointer-events: none;
+  font-size: 1.3rem;
+}
+
+.centered-input input {
+  text-align: center;
 }
 </style>
