@@ -143,9 +143,8 @@
 
         <v-row v-show="abs.length != 0">
           <v-col>
-            <p class="title">Polygonal gate coming soon...</p>
-            <div id="ridgePlotExpression"></div>
-            <p class="body-2">Will test my sanity</p>
+            <p class="title">Polygonal gate (work in progress)</p>
+            <div id="polyGateScatter"></div>
           </v-col>
 
         </v-row>
@@ -159,7 +158,7 @@
     >
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.04.11</span>
+      <span>Updated 2020.04.13</span>
     </v-footer>
   </v-app>
 </template>
@@ -187,6 +186,7 @@ export default {
       dataCite: [],
       dataTsne: [],
       dataTsneExpression: [],
+      polyGateIndices: [],
       fillScales: [],
       absDensities: [],
       enableThresh: false,
@@ -261,8 +261,6 @@ export default {
     selAbs() {
       this.makeTsneExpressionData();
       this.makeTsneExpression();
-
-      this.makeRidgePlots();
     },
 
     enableThresh() {
@@ -283,6 +281,13 @@ export default {
       console.log('here');
       // TODO redraw based on the cells used....
     },
+
+    polyGateIndices() {
+      if(this.polyGateIndices.length > 0) {
+        this.makePolyGateScatter();
+      }
+
+    }
   },
   methods: {
     onFileChange(e) {
@@ -315,7 +320,7 @@ export default {
         .fillVar("cluster")
         .fillScale(clusterScale)
 
-      const draw = function() {
+      const draw = () => {
         const charts = d3.select("#tsne")
           .selectAll(".chart")
           .data(final_data)
@@ -331,21 +336,27 @@ export default {
         const brush = d3.polybrush()
           .x(scatter.xScale())
           .y(scatter.yScale())
-          .on("start", function() {
-            charts.selectAll(".selected").classed("selected", false);
+          .on("start", () => {
+            this.polyGateIndices = [];
+            d3.select("#tsne").selectAll("circle").classed("selected", false);
           })
-          .on("brush", function() {
-            d3.select("#tsne").selectAll("circle").classed("selected", function(d) {
-                //get the associated circle
-                const point = d3.select("#" + d.barcode);
-                if (brush.isWithinExtent(point.attr("cx"), point.attr("cy"))) {
-                  point.classed("selected", true);
-                  return true;
-                } else {
-                  point.classed("selected", false);
-                  return false;
-                }
+          .on("end", () => {
+            const indices = [];
+            d3.select("#tsne").selectAll("circle").classed("selected", (d, i) => {
+
+              //get the associated circle
+              const point = d3.select("#" + d.barcode);
+              if (brush.isWithinExtent(point.attr("cx"), point.attr("cy"))) {
+                point.classed("selected", true);
+                indices.push(i);
+                return true;
+              } else {
+                point.classed("selected", false);
+                return false;
+              }
             });
+
+            this.polyGateIndices = indices;
           });
 
         d3.select("#tsne")
@@ -358,7 +369,6 @@ export default {
     },
 
     makeTsneExpressionData() {
-      // TODO add filtering step here...
       // TODO optimize this filtering step...set a previous state flag to avoid continously creating new objects
       this.dataTsneExpression = _.map(this.selAbs, (a) => {
         const d = {
@@ -421,9 +431,49 @@ export default {
     },
 
 
-    makeRidgePlots() {
-      console.log('hmmm');
-    }
+    makePolyGateScatter() {
+      const final_data = [{
+        key: "cluster_tsne",
+        title: "",
+        type: "cluster",
+        values: _.map(this.polyGateIndices, (d) => (this.dataTsne[d]))
+      }];
+
+      const uniq_clusts = _.uniq(_.map(this.dataTsne, (d) => {return(d.cluster)}))
+      const clusterScale = d3.scaleOrdinal(d3.schemePaired)
+        .domain(uniq_clusts)
+
+      // Fix axes constraint
+      // Add ability to select x/y
+      // Fix axes labels 
+
+      const scatter = ScatterPlot()
+        .width(400)
+        .height(400)
+        .radius(1.5)
+        .xVar("CD45RO")
+        .yVar("CCR7")
+        .xTitle("CD45RA")
+        .yTitle("CCR7")
+        .fillVar("cluster")
+        .fillScale(clusterScale);
+
+      const draw = function(data) {
+        const charts = d3.select("#polyGateScatter")
+          .selectAll(".polyGateScatter")
+          .data(data, (d) => {return d.key});
+
+        charts.enter()
+          .append("div")
+          .attr("class", "polyGateScatter")
+          .merge(charts)
+          .call(scatter);
+
+        charts.exit().remove()
+      }
+
+      draw(final_data);
+    },
 
   }
 }

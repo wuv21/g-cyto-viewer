@@ -124,6 +124,7 @@ export default function ScatterPlot() {
                 .attr('cy', (d) => yScale(d[yVar]))
                 .attr('r', radius)
                 .attr("id", (d) => d.barcode)
+                // .attr("class", ".selected")
                 // Transition properties of the + update selections
                 .merge(circles)
                 // .transition()
