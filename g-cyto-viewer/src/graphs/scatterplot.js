@@ -54,9 +54,10 @@ export default function ScatterPlot() {
             // TODO fix title centering...
             // Title G
             svgEnter.append('text')
-                .attr('transform', 'translate(' + ((margin.left + chartWidth) / 2) + ',' + 20 + ')')
+                .attr('transform', 'translate(' + (margin.left + chartWidth / 2) + ',' + 30 + ')')
                 .text(title)
                 .attr('class', 'chart-title')
+                .style('text-anchor', 'middle')
 
             // g element for markers
             svgEnter.append('g')

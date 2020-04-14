@@ -22,11 +22,12 @@
           :multiple="true"
           color="indigo"
         >
-          <v-list-item v-for="(ab, i) in abs" :key="i">
+          <v-list-item v-for="(ab, i) in abs" :key="`ab-${i}`">
             <v-list-item-content>
               <v-list-item-title v-text="ab"></v-list-item-title>
             </v-list-item-content>
           </v-list-item>
+
         </v-list-item-group>
       </v-list>
     </v-navigation-drawer>
@@ -142,8 +143,31 @@
         </v-row>
 
         <v-row v-show="abs.length != 0">
-          <v-col>
+          <v-col cols="5">
             <p class="title">Polygonal gate (work in progress)</p>
+            <v-row>
+              <v-col cols="6">
+                <v-card
+                  class="mx-auto"
+                >
+                  <v-card-subtitle class="pb-0">x-axis antibody</v-card-subtitle>
+                  <v-card-text class="text--primary">
+                    <div>Antibody</div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+              <v-col cols="6">
+                <v-card
+                  class="mx-auto"
+                >
+                  <v-card-subtitle class="pb-0">y-axis antibody</v-card-subtitle>
+                  <v-card-text class="text--primary">
+                    <div>Antibody</div>
+                  </v-card-text>
+                </v-card>                
+              </v-col>
+            </v-row>
+            <!-- TODO create draggable list for x and y... -->
             <div id="polyGateScatter"></div>
           </v-col>
 
