@@ -22,12 +22,15 @@
           :multiple="true"
           color="indigo"
         >
-          <v-list-item v-for="(ab, i) in abs" :key="`ab-${i}`">
-            <v-list-item-content>
-              <v-list-item-title v-text="ab"></v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
+          <draggable v-model="abs" :options="{group: {name:'test', pull:'clone', put:false}, sort: false}" style="min-height:10px">
 
+            <v-list-item v-for="(ab, i) in abs" :key="`ab-${i}`">
+              <v-list-item-content>
+                <v-list-item-title v-text="ab"></v-list-item-title>
+              </v-list-item-content>
+            </v-list-item>
+
+          </draggable>
         </v-list-item-group>
       </v-list>
     </v-navigation-drawer>
@@ -144,33 +147,40 @@
 
         <v-row v-show="abs.length != 0">
           <v-col cols="5">
-            <p class="title">Polygonal gate (work in progress)</p>
+            <p class="title">Polygonal gate</p>
+            <p class="caption">Drag and drop antibodies from right bar to the below boxes.</p>
             <v-row>
               <v-col cols="6">
                 <v-card
                   class="mx-auto"
+                  outlined
                 >
                   <v-card-subtitle class="pb-0">x-axis antibody</v-card-subtitle>
-                  <v-card-text class="text--primary">
-                    <div>Antibody</div>
-                  </v-card-text>
+                    <draggable v-model="polyGateXAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 50px">
+                        <v-card-text v-for="(ab, i) in polyGateXAb" :key="`x-${i}`">
+                          <div v-text="ab"></div>
+                        </v-card-text>
+                    </draggable>
                 </v-card>
               </v-col>
+
               <v-col cols="6">
                 <v-card
                   class="mx-auto"
+                  outlined
                 >
                   <v-card-subtitle class="pb-0">y-axis antibody</v-card-subtitle>
-                  <v-card-text class="text--primary">
-                    <div>Antibody</div>
-                  </v-card-text>
-                </v-card>                
+                    <draggable v-model="polyGateYAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 50px">
+                        <v-card-text v-for="(ab, i) in polyGateYAb" :key="`y-${i}`">
+                          <div v-text="ab"></div>
+                        </v-card-text>
+                    </draggable>
+                </v-card>
               </v-col>
             </v-row>
-            <!-- TODO create draggable list for x and y... -->
+
             <div id="polyGateScatter"></div>
           </v-col>
-
         </v-row>
       </v-container>
     </v-content>
@@ -182,13 +192,14 @@
     >
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.04.13</span>
+      <span>Updated 2020.04.14</span>
     </v-footer>
   </v-app>
 </template>
 
 <script>
 import '@mdi/font/css/materialdesignicons.css';
+import draggable from 'vuedraggable'
 import * as d3 from "d3";
 import _ from "lodash";
 import ScatterPlot from "./graphs/scatterplot.js";
@@ -199,6 +210,7 @@ export default {
   icons: {
     iconfont: "mdi"
   },
+  components: {'draggable': draggable},
   data: () => ({
       drawerRight: null,
       title: "gCytoViewer",
@@ -211,6 +223,8 @@ export default {
       dataTsne: [],
       dataTsneExpression: [],
       polyGateIndices: [],
+      polyGateXAb: [],
+      polyGateYAb: [],
       fillScales: [],
       absDensities: [],
       enableThresh: false,
@@ -307,10 +321,25 @@ export default {
     },
 
     polyGateIndices() {
-      if(this.polyGateIndices.length > 0) {
+      if(this.polyGateIndices.length > 0 && this.polyGateXAb.length == 1 && this.polyGateYAb.length == 1) {
         this.makePolyGateScatter();
       }
+    },
 
+    polyGateXAb(newVal, prevVal) {
+      this.polyGateXAb = this.checkPolyGateAb(prevVal, newVal);
+
+      if (this.polyGateIndices.length > 0 && this.polyGateYAb.length == 1) {
+        this.makePolyGateScatter();
+      }
+    },
+
+    polyGateYAb(newVal, prevVal) {
+      this.polyGateYAb = this.checkPolyGateAb(prevVal, newVal);
+
+      if (this.polyGateIndices.length > 0 && this.polyGateXAb.length == 1) {
+        this.makePolyGateScatter();
+      }
     }
   },
   methods: {
@@ -454,10 +483,21 @@ export default {
       draw(this.dataTsneExpression);
     },
 
+    checkPolyGateAb(prevVal, newVal) {
+      if (newVal.length > 1) {
+        if (newVal[0] == prevVal[0]) {
+          return [newVal[1]];
+        } else {
+          return [newVal[0]];
+        }
+      }
+
+      return newVal;
+    },
 
     makePolyGateScatter() {
       const final_data = [{
-        key: "cluster_tsne",
+        key: "polygate-" + this.polyGateXAb[0] + this.polyGateYAb[0],
         title: "",
         type: "cluster",
         values: _.map(this.polyGateIndices, (d) => (this.dataTsne[d]))
@@ -470,15 +510,15 @@ export default {
       // Fix axes constraint
       // Add ability to select x/y
       // Fix axes labels 
-
+      console.log('here at scatter');
       const scatter = ScatterPlot()
         .width(400)
         .height(400)
         .radius(1.5)
-        .xVar("CD45RO")
-        .yVar("CCR7")
-        .xTitle("CD45RA")
-        .yTitle("CCR7")
+        .xVar(this.polyGateXAb[0])
+        .yVar(this.polyGateYAb[0])
+        .xTitle(this.polyGateXAb[0])
+        .yTitle(this.polyGateYAb[0])
         .fillVar("cluster")
         .fillScale(clusterScale);
 
