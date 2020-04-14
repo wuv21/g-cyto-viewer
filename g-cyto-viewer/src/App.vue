@@ -507,10 +507,6 @@ export default {
       const clusterScale = d3.scaleOrdinal(d3.schemePaired)
         .domain(uniq_clusts)
 
-      // Fix axes constraint
-      // Add ability to select x/y
-      // Fix axes labels 
-      console.log('here at scatter');
       const scatter = ScatterPlot()
         .width(400)
         .height(400)
