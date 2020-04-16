@@ -22,7 +22,11 @@
           :multiple="true"
           color="indigo"
         >
-          <draggable v-model="abs" :options="{group: {name:'test', pull:'clone', put:false}, sort: false}" style="min-height:10px">
+          <draggable
+            v-model="abs"
+            :options="{group: {name:'test', pull:'clone', put:false}, sort: false}"
+            style="min-height:10px"
+          >
 
             <v-list-item v-for="(ab, i) in abs" :key="`ab-${i}`">
               <v-list-item-content>
@@ -81,10 +85,11 @@
               <v-row>
                 <v-col cols="6">
                   <p class="subtitle-2">Random cell filter (work in progress)</p>
+                  <p class="caption">Recommended to de-select all antibodies first.</p>
                   <v-slider
                     v-model="cellsUsed"
                     class="align-center"
-                    :max="dataTsne.length"
+                    :max="orgDataTsne.length"
                     min="0"
                     hide-details
                   >
@@ -116,6 +121,7 @@
         >
           <v-col v-show="abs.length != 0" cols="5" text-center justify-center>
               <p class="title">Colored by cluster</p>
+              <p class="caption">Click on graph to place anchors for polygonal gate. Double click to finish. Drag gate as needed. Click outside gate to reset.</p>
               <div id="tsne"></div>
           </v-col>
 
@@ -220,12 +226,14 @@ export default {
       abs: [],
       selAbs: [],
       dataCite: [],
+      orgDataTsne: [],
       dataTsne: [],
       dataTsneExpression: [],
       polyGateIndices: [],
       polyGateXAb: [],
       polyGateYAb: [],
       fillScales: [],
+      clusterScale: null,
       absDensities: [],
       enableThresh: false,
       expThresh: 0,
@@ -278,8 +286,11 @@ export default {
         dataCiteKeys.forEach((x) => {
           d[x] = this.dataCite[x][i]
         });
-        this.dataTsne.push(d)
+        this.orgDataTsne.push(d)
       }
+
+      // set default to full dataset
+      this.dataTsne = this.orgDataTsne;
 
       // precalculate d3 scales
       this.abs.forEach((a) => {
@@ -289,6 +300,11 @@ export default {
         // fill scale
         this.fillScales[a] = d3.scaleSequential(d3.interpolateReds).domain([minAb, maxAb])
       });
+
+      // precalculate cluster scale
+      const uniq_clusts = _.uniq(_.map(this.dataTsne, (d) => {return(d.cluster)}))
+      this.clusterScale = d3.scaleOrdinal(d3.schemePaired)
+        .domain(uniq_clusts)
 
       // save other settings
       this.cellsUsed = this.dataTsne.length;
@@ -316,8 +332,23 @@ export default {
     },
 
     cellsUsed() {
-      console.log('here');
-      // TODO redraw based on the cells used....
+      console.log('work in progress...')
+      // if (newVal != prevVal) {
+      //   if (this.cellsUsed == this.dataTsne.length) {
+      //     this.dataTsne = this.orgDataTsne;
+      //   } else {
+      //     this.dataTsne = this.getRandomNFromArray(this.orgDataTsne, this.cellsUsed);
+      //   }
+      //   console.log('here');
+      //   this.makeTsne()
+      //   this.makeTsneExpressionData();
+      //   this.makeTsneExpression();
+      // }
+
+      // // TODO this.polyGateIndices is currently not updated when this.cellsUsed is changed...will need to force update
+      // if(this.polyGateIndices.length > 0 && this.polyGateXAb.length == 1 && this.polyGateYAb.length == 1) {
+      //   this.makePolyGateScatter();
+      // }
     },
 
     polyGateIndices() {
@@ -360,10 +391,7 @@ export default {
         values: this.dataTsne
       }];
 
-      const uniq_clusts = _.uniq(_.map(this.dataTsne, (d) => {return(d.cluster)}))
-      const clusterScale = d3.scaleOrdinal(d3.schemePaired)
-        .domain(uniq_clusts)
-
+      console.log('here');
       const scatter = ScatterPlot()
         .width(500)
         .height(500)
@@ -371,7 +399,7 @@ export default {
         .xVar("tSNE_1")
         .yVar("tSNE_2")
         .fillVar("cluster")
-        .fillScale(clusterScale)
+        .fillScale(this.clusterScale)
 
       const draw = () => {
         const charts = d3.select("#tsne")
@@ -386,6 +414,7 @@ export default {
 
         charts.exit().remove()
 
+        // TODO fix this...because this isn't unique to each graph
         const brush = d3.polybrush()
           .x(scatter.xScale())
           .y(scatter.yScale())
@@ -503,10 +532,6 @@ export default {
         values: _.map(this.polyGateIndices, (d) => (this.dataTsne[d]))
       }];
 
-      const uniq_clusts = _.uniq(_.map(this.dataTsne, (d) => {return(d.cluster)}))
-      const clusterScale = d3.scaleOrdinal(d3.schemePaired)
-        .domain(uniq_clusts)
-
       const scatter = ScatterPlot()
         .width(400)
         .height(400)
@@ -516,7 +541,7 @@ export default {
         .xTitle(this.polyGateXAb[0])
         .yTitle(this.polyGateYAb[0])
         .fillVar("cluster")
-        .fillScale(clusterScale);
+        .fillScale(this.clusterScale);
 
       const draw = function(data) {
         const charts = d3.select("#polyGateScatter")
@@ -535,6 +560,20 @@ export default {
       draw(final_data);
     },
 
+    getRandomNFromArray(arr, n) {
+      const result = new Array(n);
+      let len = arr.length;
+      const taken = new Array(len);
+
+      if (n > len)
+          throw new RangeError("getRandom: more elements taken than available");
+      while (n--) {
+          const x = Math.floor(Math.random() * len);
+          result[n] = arr[x in taken ? taken[x] : x];
+          taken[x] = --len in taken ? taken[len] : len;
+      }
+      return result;
+    },
   }
 }
 </script>
