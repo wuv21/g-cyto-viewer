@@ -81,10 +81,10 @@
             </v-col>
 
             <v-col v-show="abs.length != 0" cols="7" text-center justify-center>
-              <p class="title">Dashboard settings</p>
+              <p class="title mb-0">Dashboard settings</p>
               <v-row>
                 <v-col cols="6">
-                  <p class="subtitle-2">Random cell filter</p>
+                  <p class="subtitle-2 mb-0">Random cell filter</p>
                   <p class="caption">Recommended to de-select all antibodies first.</p>
                   <v-slider
                     v-model="cellsUsed"
@@ -120,7 +120,7 @@
           justify="space-around"
         >
           <v-col v-show="abs.length != 0" cols="5" text-center justify-center>
-              <p class="title">Colored by cluster</p>
+              <p class="title mb-0">Colored by cluster</p>
               <p class="caption">Click on graph to place anchors for polygonal gate. Double click to finish. Drag gate as needed. Click outside gate to reset.</p>
               <div id="tsne"></div>
           </v-col>
@@ -153,8 +153,8 @@
 
         <v-row v-show="abs.length != 0">
           <v-col cols="5">
-            <p class="title">Polygonal gate</p>
-            <p class="caption">Drag and drop antibodies from right bar to the below boxes.</p>
+            <p class="title mb-0">Polygonal gate</p>
+            <p class="caption">Drag and drop antibodies from right panel to the below boxes.</p>
             <v-row>
               <v-col cols="6">
                 <v-card
@@ -162,7 +162,7 @@
                   outlined
                 >
                   <v-card-subtitle class="pb-0">x-axis antibody</v-card-subtitle>
-                    <draggable v-model="polyGateXAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 50px">
+                    <draggable v-model="polyGateXAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 10px">
                         <v-card-text v-for="(ab, i) in polyGateXAb" :key="`x-${i}`">
                           <div v-text="ab"></div>
                         </v-card-text>
@@ -176,7 +176,7 @@
                   outlined
                 >
                   <v-card-subtitle class="pb-0">y-axis antibody</v-card-subtitle>
-                    <draggable v-model="polyGateYAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 50px">
+                    <draggable v-model="polyGateYAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 10px">
                         <v-card-text v-for="(ab, i) in polyGateYAb" :key="`y-${i}`">
                           <div v-text="ab"></div>
                         </v-card-text>
@@ -588,6 +588,10 @@ export default {
 </script>
 
 <style>
+.title {
+  color: #455A64;
+}
+
 .axis line,
 .axis path {
   fill: none;
