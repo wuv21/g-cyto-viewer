@@ -162,7 +162,7 @@
                   outlined
                 >
                   <v-card-subtitle class="pb-0">x-axis antibody</v-card-subtitle>
-                    <draggable v-model="polyGateXAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 10px">
+                    <draggable v-model="polyGateXAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 15px">
                         <v-card-text v-for="(ab, i) in polyGateXAb" :key="`x-${i}`">
                           <div v-text="ab"></div>
                         </v-card-text>
@@ -176,7 +176,7 @@
                   outlined
                 >
                   <v-card-subtitle class="pb-0">y-axis antibody</v-card-subtitle>
-                    <draggable v-model="polyGateYAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 10px">
+                    <draggable v-model="polyGateYAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 15px">
                         <v-card-text v-for="(ab, i) in polyGateYAb" :key="`y-${i}`">
                           <div v-text="ab"></div>
                         </v-card-text>
