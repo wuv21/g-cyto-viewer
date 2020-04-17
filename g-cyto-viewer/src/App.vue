@@ -75,7 +75,7 @@
                   <v-avatar left>
                     <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
                   </v-avatar>
-                  {{dataTsne.length}} cells
+                  {{orgDataTsne.length}} cells
                 </v-chip>                           
               </div>
             </v-col>
@@ -84,7 +84,7 @@
               <p class="title">Dashboard settings</p>
               <v-row>
                 <v-col cols="6">
-                  <p class="subtitle-2">Random cell filter (work in progress)</p>
+                  <p class="subtitle-2">Random cell filter</p>
                   <p class="caption">Recommended to de-select all antibodies first.</p>
                   <v-slider
                     v-model="cellsUsed"
@@ -99,7 +99,7 @@
                         class="ma-0 pa-0"
                         hide-details
                         single-line
-                        :max="dataTsne.length"
+                        :max="orgDataTsne.length"
                         min="0"
                         type="number"
                         style="width: 5em;"
@@ -198,7 +198,7 @@
     >
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.04.14</span>
+      <span>Updated 2020.04.16</span>
     </v-footer>
   </v-app>
 </template>
@@ -229,9 +229,10 @@ export default {
       orgDataTsne: [],
       dataTsne: [],
       dataTsneExpression: [],
-      polyGateIndices: [],
+      dataPolyGate: [],
       polyGateXAb: [],
       polyGateYAb: [],
+      polyGateBrush: null,
       fillScales: [],
       clusterScale: null,
       absDensities: [],
@@ -331,28 +332,26 @@ export default {
       }
     },
 
-    cellsUsed() {
-      console.log('work in progress...')
-      // if (newVal != prevVal) {
-      //   if (this.cellsUsed == this.dataTsne.length) {
-      //     this.dataTsne = this.orgDataTsne;
-      //   } else {
-      //     this.dataTsne = this.getRandomNFromArray(this.orgDataTsne, this.cellsUsed);
-      //   }
-      //   console.log('here');
-      //   this.makeTsne()
-      //   this.makeTsneExpressionData();
-      //   this.makeTsneExpression();
-      // }
+    cellsUsed(newVal, prevVal) {
+      if (newVal != prevVal) {
+        if (this.cellsUsed == this.dataTsne.length) {
+          this.dataTsne = this.orgDataTsne;
+        } else {
+          this.dataTsne = this.getRandomNFromArray(this.orgDataTsne, this.cellsUsed);
+        }
 
-      // // TODO this.polyGateIndices is currently not updated when this.cellsUsed is changed...will need to force update
-      // if(this.polyGateIndices.length > 0 && this.polyGateXAb.length == 1 && this.polyGateYAb.length == 1) {
-      //   this.makePolyGateScatter();
-      // }
+        this.makeTsne()
+        this.makeTsneExpressionData();
+        this.makeTsneExpression();
+      }
+
+      if (this.dataPolyGate.length > 0 && this.polyGateXAb.length == 1 && this.polyGateYAb.length == 1) {
+        this.updatePolyGateIndices(this.polyGateBrush);
+      }
     },
 
-    polyGateIndices() {
-      if(this.polyGateIndices.length > 0 && this.polyGateXAb.length == 1 && this.polyGateYAb.length == 1) {
+    dataPolyGate() {
+      if(this.dataPolyGate.length > 0 && this.polyGateXAb.length == 1 && this.polyGateYAb.length == 1) {
         this.makePolyGateScatter();
       }
     },
@@ -360,7 +359,7 @@ export default {
     polyGateXAb(newVal, prevVal) {
       this.polyGateXAb = this.checkPolyGateAb(prevVal, newVal);
 
-      if (this.polyGateIndices.length > 0 && this.polyGateYAb.length == 1) {
+      if (this.dataPolyGate.length > 0 && this.polyGateYAb.length == 1) {
         this.makePolyGateScatter();
       }
     },
@@ -368,7 +367,7 @@ export default {
     polyGateYAb(newVal, prevVal) {
       this.polyGateYAb = this.checkPolyGateAb(prevVal, newVal);
 
-      if (this.polyGateIndices.length > 0 && this.polyGateXAb.length == 1) {
+      if (this.dataPolyGate.length > 0 && this.polyGateXAb.length == 1) {
         this.makePolyGateScatter();
       }
     }
@@ -391,7 +390,6 @@ export default {
         values: this.dataTsne
       }];
 
-      console.log('here');
       const scatter = ScatterPlot()
         .width(500)
         .height(500)
@@ -414,40 +412,51 @@ export default {
 
         charts.exit().remove()
 
-        // TODO fix this...because this isn't unique to each graph
-        const brush = d3.polybrush()
-          .x(scatter.xScale())
-          .y(scatter.yScale())
-          .on("start", () => {
-            this.polyGateIndices = [];
-            d3.select("#tsne").selectAll("circle").classed("selected", false);
-          })
-          .on("end", () => {
-            const indices = [];
-            d3.select("#tsne").selectAll("circle").classed("selected", (d, i) => {
+        const brushG = d3.select("#clusterBrushG")
 
-              //get the associated circle
-              const point = d3.select("#" + d.barcode);
-              if (brush.isWithinExtent(point.attr("cx"), point.attr("cy"))) {
-                point.classed("selected", true);
-                indices.push(i);
-                return true;
-              } else {
-                point.classed("selected", false);
-                return false;
-              }
+        if (brushG.empty()) {
+          const brush = d3.polybrush()
+            .x(scatter.xScale())
+            .y(scatter.yScale())
+            .on("start", () => {
+              this.polyGateIndices = [];
+              this.makePolyGateScatter();
+
+              d3.select("#tsne").selectAll("circle").classed("selected", false);
+            })
+            .on("end", () => {
+              this.updatePolyGateIndices(brush);
             });
 
-            this.polyGateIndices = indices;
-          });
+          d3.select("#tsne")
+            .select(".scatterG")
+            .append("g")
+            .attr("id", "clusterBrushG")
+            .call(brush);
 
-        d3.select("#tsne")
-          .select(".scatterG")
-          .append("g")
-          .call(brush);
+          // brush is not being saved correctly...
+          this.polyGateBrush = brush;
+        }
       }
 
       draw();
+    },
+
+    updatePolyGateIndices(brush) {
+      const dataTemp = [];
+      d3.select("#tsne").selectAll("circle").classed("selected", (d) => {
+        const point = d3.select("#" + d.barcode);
+        if (brush.isWithinExtent(point.attr("cx"), point.attr("cy"))) {
+          point.classed("selected", true);
+          dataTemp.push(d);
+          return true;
+        } else {
+          point.classed("selected", false);
+          return false;
+        }
+      });
+
+      this.dataPolyGate = dataTemp;
     },
 
     makeTsneExpressionData() {
@@ -491,7 +500,7 @@ export default {
         .width(250)
         .height(250)
         .radius(0.5)
-        .constrainAxes(this.dataTsne)
+        .constrainAxes(this.orgDataTsne)
         .xVar("tSNE_1")
         .yVar("tSNE_2");
 
@@ -529,7 +538,7 @@ export default {
         key: "polygate-" + this.polyGateXAb[0] + this.polyGateYAb[0],
         title: "",
         type: "cluster",
-        values: _.map(this.polyGateIndices, (d) => (this.dataTsne[d]))
+        values: this.dataPolyGate
       }];
 
       const scatter = ScatterPlot()
