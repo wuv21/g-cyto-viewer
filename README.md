@@ -70,4 +70,4 @@ Steps required to generate TSV file for visualization and analysis
 
 ## Acknowledgments
 
-* Much thanks to [Mike Freeman]() for his tutorials regarding reproducible charts
+* Much thanks to [Mike Freeman](https://info474-s17.github.io/book/d3-reusability.html) for his tutorials regarding reusable charts
