@@ -1,8 +1,16 @@
 # g-cyto-viewer
 
-Lorem ipsum
+Client-side software to visualize datasets generated from CITEseq approaches with antibody derived tags (ADT). Load in a TSV file with tSNE coordinates, cluster information, and scaled antibody expression values to interactively analyze the dataset straight from a browser.
 
 Deployed [here](https://wuv21.github.io/g-cyto-viewer/).
+
+![screenshot of website](img/screenshot.png)
+
+## Current features
+- General tSNE cluster scatter plot
+- Small multiples of antibody expression
+- Single polygonal gating with dual antibody scatter plot
+- Random downsampling of cells to improve efficiency as needed
 
 ## Getting Started
 
