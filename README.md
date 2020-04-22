@@ -61,6 +61,14 @@ Steps required to generate TSV file for visualization and analysis
 3. Load up website and load in TSV dataset.
 4. Visualize and analyze to your heart's content!
 
+## For developers
+To build upon this tool or to run a local instance:
+1. Clone github repo
+2. `cd` into repo
+3. Install npm pacakges: `npm install`
+4. Set up local host server: `npm run serve`
+5. Navigate to `localhost:8080` on your browser (the port may differ by user's settings)
+
 ## Built With
 
 * [Vue](https://vuejs.org/) - Web framework used
