@@ -78,4 +78,4 @@ To build upon this tool or to run a local instance:
 
 ## Acknowledgments
 
-* Much thanks to [Mike Freeman](https://info474-s17.github.io/book/d3-reusability.html) for his tutorials regarding reusable charts
+* Much thanks to [Mike Freeman](https://info474-s17.github.io/book/d3-reusability.html) for his tutorials regarding reusable charts and his template for a scatterplot chart.
