@@ -27,16 +27,24 @@ Steps required to generate TSV file for visualization and analysis
     
     # get scaled expression values and barcode column
     df_scaled_data <- data.frame(t(adt_seu@assays$adt@scale.data)) %>%
-    mutate(barcode = rownames(.))
+        mutate(barcode = rownames(.))
 
-    # get tsne coordinates along with barcode and cluster identity
-    df_tsne <- data.frame(adt_seu@reductions$tsne_adt_postCD45B2M@cell.embeddings) %>%
-        mutate(barcode = rownames(.),
-                cluster = adt_seu$snn_adt_postCD45B2M_res.0.3)
+    # get dim reduction coordinates along with barcode and cluster identity
+    tsne_coords <- adt_seu@reductions$tsne_adt_postCD45@cell.embeddings
+    umap_coords <- adt_seu@reductions$umap@cell.embeddings
+
+    df_final <- data.frame(
+        barcode = rownames(tsne_coords),
+        cluster = adt_seu$snn_postCD45_res.1.5,
+        xaxis_tsne = tsne_coords[, 1],
+        yaxis_tsne = tsne_coords[, 2],
+        xaxis_umap = umap_coords[, 1],
+        yaxis_umap = umap_coords[, 2]
+    )
 
     # merge dataframes and save as TSV (tsv setttings are necessary!)
     df_save <- df_scaled_data %>%
-        left_join(df_tsne, by = "barcode") %>%
+        left_join(df_final, by = "barcode") %>%
         write.table("adt_subset.tsv",
             quote = FALSE,
             col.names = TRUE,
@@ -45,10 +53,10 @@ Steps required to generate TSV file for visualization and analysis
 
     The resultant TSV file will look somewhat like this:
 
-    barcode | tSNE_1 | tSNE_2 | cluster | CD3 | CD4 | CD5 | CD8 | more_markers
-    --- | --- | --- | --- | --- | --- | --- | --- | --- 
-    TCGATGA | 3.214 | 3.2.4125 | 1 | -0.5 | 0.5 | 0.4 | 0.6 | etc...
-    more cells... | | | | | | | 
+    barcode | xaxis_tsne | yaxis_tsne | xaxis_umap | yaxis_umap | cluster | CD3 | CD4 | CD5 | CD8 | more_markers
+    --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- 
+    TCGATGA | 3.214 | 3.4125 | -7.4 | 1.5 | 1 | -0.5 | 0.5 | 0.4 | 0.6 | etc...
+    more cells... | | | | | | | | | 
 
     The following columns must exist.
     - barcode

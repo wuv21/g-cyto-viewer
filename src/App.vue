@@ -205,7 +205,7 @@
     >
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.04.16</span>
+      <span>Updated 2020.05.31</span>
     </v-footer>
   </v-app>
 </template>
