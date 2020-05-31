@@ -7,10 +7,11 @@ Deployed [here](https://wuv21.github.io/g-cyto-viewer/).
 ![screenshot of website](img/screenshot.png)
 
 ## Current features
-- General tSNE cluster scatter plot
+- Main scatter plot showing clusters
 - Small multiples of antibody expression
 - Single polygonal gating with dual antibody scatter plot
 - Random downsampling of cells to improve efficiency as needed
+- Multiple dimension reduction visualizations allowed
 
 ## Getting Started
 
