@@ -54,15 +54,17 @@ Steps required to generate TSV file for visualization and analysis
     The resultant TSV file will look somewhat like this:
 
     barcode | xaxis_tsne | yaxis_tsne | xaxis_umap | yaxis_umap | cluster | CD3 | CD4 | CD5 | CD8 | more_markers
-    --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- 
+    --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
     TCGATGA | 3.214 | 3.4125 | -7.4 | 1.5 | 1 | -0.5 | 0.5 | 0.4 | 0.6 | etc...
-    more cells... | | | | | | | | | 
+    more cells... | | | | | | | | | | 
 
     The following columns must exist.
     - barcode
-    - tSNE_1
-    - tSNE_2
+    - xaxis_?
+    - yaxis_? 
     - cluster
+
+    ...where `?` can be replaced by any alphanumeric symbols (i.e. tsne or umap).
 
     All other columns must be expression data (i.e. must contain numerical values).
 
