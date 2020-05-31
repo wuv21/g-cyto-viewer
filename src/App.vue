@@ -15,7 +15,19 @@
       </v-list-item>
 
       <v-divider></v-divider>
-      
+
+      <v-list-item>
+        <v-text-field
+          class="mt-5"
+          v-model="absSearch"
+          label="Search for abs"
+          v-show="abs.length != 0"
+          dense
+          clearable
+        ></v-text-field>
+      </v-list-item>
+
+
       <v-list dense>
         <v-list-item-group
           v-model="selAbs"
@@ -28,7 +40,7 @@
             style="min-height:10px"
           >
 
-            <v-list-item v-for="(ab, i) in abs" :key="`ab-${i}`">
+            <v-list-item v-for="(ab, i) in abs" :key="`ab-${i}`" v-show="absDisplayBool[i]">
               <v-list-item-content>
                 <v-list-item-title v-text="ab"></v-list-item-title>
               </v-list-item-content>
@@ -232,6 +244,8 @@ export default {
       header: [],
       abs: [],
       selAbs: [],
+      absSearch: null,
+      absDisplayBool: [],
       dataCite: [],
       orgDataClean: [],
       currentDataClean: [],
@@ -290,6 +304,7 @@ export default {
       const axisCols = _.filter(this.header, (i) => /^(xaxis|yaxis)/.test(i))
       
       this.abs = _.without(this.header, ...metaInfoTags.concat(axisCols));
+      this.absDisplayBool = Array(this.abs.length).fill(true);
 
       // find available dim methods
       this.dimMethods = _.chain(axisCols).map((x) => x.replace(/^(xaxis|yaxis)_/, "")).uniq().value();
@@ -391,8 +406,10 @@ export default {
 
     dimMethodSel() {
       if (this.polyGateBrush) {
-        this.dataPolyGate = [];
-        this.makePolyGateScatter();
+        if (this.dataPolyGate.length > 0) {
+          this.dataPolyGate = [];
+          this.makePolyGateScatter();
+        }
 
         d3.select("#clusterBrushG").remove();
         d3.select("#mainScatter").selectAll("circle").classed("selected", false);
@@ -403,6 +420,16 @@ export default {
       if (this.selAbs.length > 0) {
         this.makeExpressionScatterData();
         this.makeExpressionScatter();
+      }
+    },
+
+    absSearch() {
+      if (this.absSearch === null || this.absSearch == "") {
+        this.absDisplayBool = Array(this.abs.length).fill(true);
+      } else {
+        this.absDisplayBool = _.map(this.abs, (x) => {
+          return x.toLowerCase().indexOf(this.absSearch.toLowerCase()) !== -1;
+        });
       }
     }
   },

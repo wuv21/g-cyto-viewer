@@ -80,7 +80,7 @@ To build upon this tool or to run a local instance:
 4. Set up local host server: `npm run serve`
 5. Navigate to `localhost:8080` on your browser (the port may differ by user's settings)
 
-## Built With
+## Built with
 
 * [Vue](https://vuejs.org/) - Web framework used
 * [Vuetify](https://vuetifyjs.com/en/) - UI framework used with Vue
