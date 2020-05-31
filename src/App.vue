@@ -75,7 +75,7 @@
                   <v-avatar left>
                     <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
                   </v-avatar>
-                  {{orgDataTsne.length}} cells
+                  {{orgDataClean.length}} cells
                 </v-chip>                           
               </div>
             </v-col>
@@ -89,7 +89,7 @@
                   <v-slider
                     v-model="cellsUsed"
                     class="align-center"
-                    :max="orgDataTsne.length"
+                    :max="orgDataClean.length"
                     min="0"
                     hide-details
                   >
@@ -99,7 +99,7 @@
                         class="ma-0 pa-0"
                         hide-details
                         single-line
-                        :max="orgDataTsne.length"
+                        :max="orgDataClean.length"
                         min="0"
                         type="number"
                         style="width: 5em;"
@@ -109,7 +109,14 @@
                 </v-col>
 
                 <v-col cols="4">
-                  <!-- <p class="subtitle-2">Eventually another setting</p> -->
+                  <p class="subtitle-2">Dimension reduction method</p>
+                  <v-select
+                    outlined
+                    :items="dimMethods"
+                    v-model="dimMethodSel"
+                    dense
+                    label="Select method"
+                  ></v-select>
                 </v-col>
               </v-row>
             </v-col>
@@ -122,7 +129,7 @@
           <v-col v-show="abs.length != 0" cols="5" text-center justify-center>
               <p class="title mb-0">Colored by cluster</p>
               <p class="caption">Click on graph to place anchors for polygonal gate. Double click to finish. Drag gate as needed. Click outside gate to reset.</p>
-              <div id="tsne"></div>
+              <div id="mainScatter"></div>
           </v-col>
 
           <v-col v-show="abs.length != 0" text-center justify-center>
@@ -147,7 +154,7 @@
               type="number"
             ></v-slider>
 
-            <div id="tsneExpression"></div>
+            <div id="expressionScatter"></div>
           </v-col>
         </v-row>
 
@@ -226,9 +233,9 @@ export default {
       abs: [],
       selAbs: [],
       dataCite: [],
-      orgDataTsne: [],
-      dataTsne: [],
-      dataTsneExpression: [],
+      orgDataClean: [],
+      currentDataClean: [],
+      currentDataCleanExpression: [],
       dataPolyGate: [],
       polyGateXAb: [],
       polyGateYAb: [],
@@ -239,8 +246,10 @@ export default {
       enableThresh: false,
       expThresh: 0,
       minThresh: 0,
-      maxThresh: 1,
+      maxThresh: 2,
       cellsUsed: 0,
+      dimMethods: [],
+      dimMethodSel: null,
   }),
   watch: {
     dataFile(d) {
@@ -278,20 +287,28 @@ export default {
 
       // get abs
       const metaInfoTags = ["barcode", "cluster", "tSNE_1", "tSNE_2"]
-      this.abs = _.without(this.header, ...metaInfoTags);
+      const axisCols = _.filter(this.header, (i) => /^(xaxis|yaxis)/.test(i))
+      
+      this.abs = _.without(this.header, ...metaInfoTags.concat(axisCols));
+
+      // find available dim methods
+      this.dimMethods = _.chain(axisCols).map((x) => x.replace(/^(xaxis|yaxis)_/, "")).uniq().value();
+
+      // set default dimMethod
+      this.dimMethodSel = this.dimMethods[0];
 
       // reformat to d3 friendly
       const dataCiteKeys = Object.keys(this.dataCite);
-      for (let i = 0; i < this.dataCite["tSNE_1"].length; i++) {
+      for (let i = 0; i < this.dataCite["barcode"].length; i++) {
         const d = {};
         dataCiteKeys.forEach((x) => {
           d[x] = this.dataCite[x][i]
         });
-        this.orgDataTsne.push(d)
+        this.orgDataClean.push(d)
       }
 
       // set default to full dataset
-      this.dataTsne = this.orgDataTsne;
+      this.currentDataClean = this.orgDataClean;
 
       // precalculate d3 scales
       this.abs.forEach((a) => {
@@ -303,46 +320,46 @@ export default {
       });
 
       // precalculate cluster scale
-      const uniq_clusts = _.uniq(_.map(this.dataTsne, (d) => {return(d.cluster)}))
+      const uniq_clusts = _.uniq(_.map(this.currentDataClean, (d) => {return(d.cluster)}))
       this.clusterScale = d3.scaleOrdinal(d3.schemePaired)
         .domain(uniq_clusts)
 
       // save other settings
-      this.cellsUsed = this.dataTsne.length;
+      this.cellsUsed = this.currentDataClean.length;
 
-      this.makeTsne();
+      this.makeMainScatter();
     },
 
     selAbs() {
-      this.makeTsneExpressionData();
-      this.makeTsneExpression();
+      this.makeExpressionScatterData();
+      this.makeExpressionScatter();
     },
 
     enableThresh() {
       if (this.selAbs.length != 0) {
-        this.makeTsneExpressionData();
-        this.makeTsneExpression();
+        this.makeExpressionScatterData();
+        this.makeExpressionScatter();
       }
     },
 
     expThresh() {
       if (this.selAbs.length != 0) {
-        this.makeTsneExpressionData();
-        this.makeTsneExpression();
+        this.makeExpressionScatterData();
+        this.makeExpressionScatter();
       }
     },
 
     cellsUsed(newVal, prevVal) {
       if (newVal != prevVal) {
-        if (this.cellsUsed == this.dataTsne.length) {
-          this.dataTsne = this.orgDataTsne;
+        if (this.cellsUsed == this.currentDataClean.length) {
+          this.currentDataClean = this.orgDataClean;
         } else {
-          this.dataTsne = this.getRandomNFromArray(this.orgDataTsne, this.cellsUsed);
+          this.currentDataClean = this.getRandomNFromArray(this.orgDataClean, this.cellsUsed);
         }
 
-        this.makeTsne()
-        this.makeTsneExpressionData();
-        this.makeTsneExpression();
+        this.makeMainScatter()
+        this.makeExpressionScatterData();
+        this.makeExpressionScatter();
       }
 
       if (this.dataPolyGate.length > 0 && this.polyGateXAb.length == 1 && this.polyGateYAb.length == 1) {
@@ -370,6 +387,23 @@ export default {
       if (this.dataPolyGate.length > 0 && this.polyGateXAb.length == 1) {
         this.makePolyGateScatter();
       }
+    },
+
+    dimMethodSel() {
+      if (this.polyGateBrush) {
+        this.dataPolyGate = [];
+        this.makePolyGateScatter();
+
+        d3.select("#clusterBrushG").remove();
+        d3.select("#mainScatter").selectAll("circle").classed("selected", false);
+      }
+
+      this.makeMainScatter();
+
+      if (this.selAbs.length > 0) {
+        this.makeExpressionScatterData();
+        this.makeExpressionScatter();
+      }
     }
   },
   methods: {
@@ -382,27 +416,29 @@ export default {
       reader.readAsText(e)
     },
 
-    makeTsne() {
+    makeMainScatter() {
       const final_data = [{
-        key: "cluster_tsne",
+        key: "mainPlot",
         title: "",
         type: "cluster",
-        values: this.dataTsne
+        values: this.currentDataClean
       }];
 
       const scatter = ScatterPlot()
         .width(500)
         .height(500)
         .radius(1)
-        .xVar("tSNE_1")
-        .yVar("tSNE_2")
+        .xVar("xaxis_" + this.dimMethodSel)
+        .yVar("yaxis_" + this.dimMethodSel)
+        .xTitle(this.dimMethodSel + " 1")
+        .yTitle(this.dimMethodSel + " 2")
         .fillVar("cluster")
         .fillScale(this.clusterScale)
 
       const draw = () => {
-        const charts = d3.select("#tsne")
+        const charts = d3.select("#mainScatter")
           .selectAll(".chart")
-          .data(final_data)
+          .data(final_data);
 
         charts.enter()
           .append("div")
@@ -422,13 +458,13 @@ export default {
               this.polyGateIndices = [];
               this.makePolyGateScatter();
 
-              d3.select("#tsne").selectAll("circle").classed("selected", false);
+              d3.select("#mainScatter").selectAll("circle").classed("selected", false);
             })
             .on("end", () => {
               this.updatePolyGateIndices(brush);
             });
 
-          d3.select("#tsne")
+          d3.select("#mainScatter")
             .select(".scatterG")
             .append("g")
             .attr("id", "clusterBrushG")
@@ -444,7 +480,7 @@ export default {
 
     updatePolyGateIndices(brush) {
       const dataTemp = [];
-      d3.select("#tsne").selectAll("circle").classed("selected", (d) => {
+      d3.select("#mainScatter").selectAll("circle").classed("selected", (d) => {
         const point = d3.select("#" + d.barcode);
         if (brush.isWithinExtent(point.attr("cx"), point.attr("cy"))) {
           point.classed("selected", true);
@@ -459,9 +495,9 @@ export default {
       this.dataPolyGate = dataTemp;
     },
 
-    makeTsneExpressionData() {
+    makeExpressionScatterData() {
       // TODO optimize this filtering step...set a previous state flag to avoid continously creating new objects
-      this.dataTsneExpression = _.map(this.selAbs, (a) => {
+      this.currentDataCleanExpression = _.map(this.selAbs, (a) => {
         const d = {
           type: "expression",
           key: a,
@@ -469,24 +505,28 @@ export default {
           fillScale: this.fillScales[this.abs[a]]
         };
 
-        let data_ref = this.dataTsne;
+        let data_ref = this.currentDataClean;
         if (this.enableThresh) {
-          const dataTsneFilt = _.filter(this.dataTsne, (d) => {
+          const currentDataCleanFilt = _.filter(this.currentDataClean, (d) => {
             return(d[this.abs[a]] >= this.expThresh)
           });
 
-          data_ref = dataTsneFilt;
+          data_ref = currentDataCleanFilt;
         }
+
+        const xaxis = "xaxis_" + this.dimMethodSel;
+        const yaxis = "yaxis_" + this.dimMethodSel;
 
         d.values = _.map(data_ref, (d) => {
           const new_d = {
-            tSNE_1: d.tSNE_1,
-            tSNE_2: d.tSNE_2,
             barcode: d.barcode,
             ab: this.abs[a],
             cluster: d.cluster,
             expression: d[this.abs[a]]
           };
+
+          new_d[xaxis] = d[xaxis];
+          new_d[yaxis] = d[yaxis];
 
           return new_d;
         });
@@ -495,30 +535,32 @@ export default {
       });
     },
 
-    makeTsneExpression() {
+    makeExpressionScatter() {
       const scatter = ScatterPlot()
         .width(250)
         .height(250)
         .radius(0.5)
-        .constrainAxes(this.orgDataTsne)
-        .xVar("tSNE_1")
-        .yVar("tSNE_2");
+        .constrainAxes(this.currentDataClean)
+        .xVar("xaxis_" + this.dimMethodSel)
+        .yVar("yaxis_" + this.dimMethodSel)
+        .xTitle(this.dimMethodSel + " 1")
+        .yTitle(this.dimMethodSel + " 2");
 
       const draw = function(data) {
-        const charts = d3.select("#tsneExpression")
-          .selectAll(".chartTsneExpression")
+        const charts = d3.select("#expressionScatter")
+          .selectAll(".chartexpressionScatter")
           .data(data, (d) => {return d.key});
 
         charts.enter()
           .append("div")
-          .attr("class", "chartTsneExpression")
+          .attr("class", "chartexpressionScatter")
           .merge(charts)
           .call(scatter);
 
         charts.exit().remove()
       }
 
-      draw(this.dataTsneExpression);
+      draw(this.currentDataCleanExpression);
     },
 
     checkPolyGateAb(prevVal, newVal) {
@@ -608,7 +650,7 @@ export default {
   display: inline-block;
 }
 
-.chartTsneExpression {
+.chartexpressionScatter {
   display: inline-block;  
 }
 

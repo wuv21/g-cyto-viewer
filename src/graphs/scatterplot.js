@@ -11,10 +11,10 @@ export default function ScatterPlot() {
         yScale = d3.scaleLinear(),
         fillScale = "",
         fillVar = "",
-        xTitle = 'tSNE 1',
-        yTitle = 'tSNE 2',
-        xVar = "tSNE_1",
-        yVar = "tSNE_2",
+        xTitle = 'x axis',
+        yTitle = 'y axis',
+        xVar = "",
+        yVar = "",
         title = 'Chart title',
         constrainAxes = null,
         radius = 2,
@@ -40,6 +40,7 @@ export default function ScatterPlot() {
                 fillVar = "expression";
                 fillScale = data.fillScale;
             }
+
 
             // Use the data-join to create the svg (if necessary)
             const ele = d3.select(this);
@@ -118,23 +119,38 @@ export default function ScatterPlot() {
             const circles = ele.select('.scatterG').selectAll('circle').data(data.values, (d) => d["barcode"]);
 
             // Use the .enter() method to get entering elements, and assign initial position
-            circles.enter().append('circle')
-                .attr('fill', (d) => fillScale(d[fillVar]))
-                .style('opacity', .2)
-                .attr('cx', (d) => xScale(d[xVar]))
-                .attr('cy', (d) => yScale(d[yVar]))
-                .attr('r', radius)
-                .attr("id", (d) => d.barcode)
-                // .attr("class", ".selected")
-                // Transition properties of the + update selections
-                .merge(circles)
-                // .transition()
-                // .duration(2000)
-                // .delay((d) => xScale(d.x) * 5)
-                .style('opacity', .8);
+            circles.join(
+                enter => enter.append('circle')
+                    .attr('fill', (d) => fillScale(d[fillVar]))
+                    .style('opacity', .8)
+                    .attr('cx', (d) => xScale(d[xVar]))
+                    .attr('cy', (d) => yScale(d[yVar]))
+                    .attr('r', radius)
+                    .attr("id", (d) => d.barcode),
+                update => update
+                    .style('opacity', .8)
+                    .attr('cx', (d) => xScale(d[xVar]))
+                    .attr('cy', (d) => yScale(d[yVar])),
+                // exit => exit.remove()
+            );
+            
+            // circles.enter().append('circle')
+            //     .attr('fill', (d) => fillScale(d[fillVar]))
+            //     .style('opacity', .2)
+            //     .attr('cx', (d) => xScale(d[xVar]))
+            //     .attr('cy', (d) => yScale(d[yVar]))
+            //     .attr('r', radius)
+            //     .attr("id", (d) => d.barcode)
+            //     // .attr("class", ".selected")
+            //     // Transition properties of the + update selections
+            //     .merge(circles)
+            //     // .transition()
+            //     // .duration(2000)
+            //     // .delay((d) => xScale(d.x) * 5)
+            //     .style('opacity', .8);
 
-            // Use the .exit() and .remove() methods to remove elements that are no longer in the data
-            circles.exit().remove();
+            // // Use the .exit() and .remove() methods to remove elements that are no longer in the data
+            // circles.exit().remove();
         });
     }
 
