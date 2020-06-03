@@ -616,6 +616,7 @@ export default {
         .radius(1.5)
         .xVar(this.polyGateXAb[0])
         .yVar(this.polyGateYAb[0])
+        .constrainAxes(this.currentDataClean)
         .xTitle(this.polyGateXAb[0])
         .yTitle(this.polyGateYAb[0])
         .fillVar("cluster")
