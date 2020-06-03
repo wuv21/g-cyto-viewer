@@ -151,9 +151,9 @@
         >
           <v-col cols="6" text-center justify-center>
               <p class="title mb-0">Colored by cluster</p>
-              <p class="caption">Click on graph to place anchors for gating. Double click to finish | Drag gate | Double click outsite to reset.</p>
+              <p class="caption">Click on graph to place anchors for gating. Double click to finish. Drag gate. | Click outside to draw new gate.</p>
               <p class="subtitle-2">Polygonal gate details</p>
-              <p class="caption">Current polygonal gate: 24 cells selected of 773 cells (5.3%)</p>
+              <p class="caption">Current polygonal gate: {{dataPolyGate.length}} cells selected of {{cellsUsed}} cells</p>
               <div id="mainScatter"></div>
           </v-col>
 
@@ -387,9 +387,14 @@ export default {
           this.currentDataClean = this.getRandomNFromArray(this.orgDataClean, this.cellsUsed);
         }
 
-        this.makeMainScatter()
+        this.makeMainScatter();
         this.makeExpressionScatterData();
         this.makeExpressionScatter();
+
+        if (this.dataPolyGate.length > 0) {
+          console.log('here');
+          this.updatePolyGateIndices(this.polyGateBrush);
+        }
       }
 
       if (this.dataPolyGate.length > 0 && this.polyGateXAb.length == 1 && this.polyGateYAb.length == 1) {
@@ -423,7 +428,7 @@ export default {
       if (this.polyGateBrush) {
         if (this.dataPolyGate.length > 0) {
           this.dataPolyGate = [];
-          this.makePolyGateScatter();
+          d3.select(".polyGateScatter").remove();
         }
 
         d3.select("#clusterBrushG").remove();
