@@ -52,7 +52,6 @@ export default function ScatterPlot() {
                 .attr('width', width)
                 .attr("height", height);
             
-            // TODO fix title centering...
             // Title G
             svgEnter.append('text')
                 .attr('transform', 'translate(' + (margin.left + chartWidth / 2) + ',' + 30 + ')')
@@ -91,19 +90,25 @@ export default function ScatterPlot() {
             // Calculate x and y scales
             let axesData = null;
             if (constrainAxes != null) {
-                axesData = constrainAxes
+                axesData = constrainAxes;
             } else {
                 axesData = data.values;
             }
 
-            const padScale = 1.25;
-            const xMax = d3.max(axesData, (d) => +d[xVar]) * padScale;
-            const xMin = d3.min(axesData, (d) => +d[xVar]) * padScale;
-            xScale.range([0, chartWidth]).domain([xMin, xMax]);
+            function makePaddedDomain(valExtent, padScale) {
+                const valRange = Math.abs(valExtent[1] - valExtent[0])
 
-            const yMin = d3.min(axesData, (d) => +d[yVar]) * padScale;
-            const yMax = d3.max(axesData, (d) => +d[yVar]) * padScale;
-            yScale.range([chartHeight, 0]).domain([yMin, yMax]);
+                const paddedDomain = [valExtent[0] - (valRange * padScale), valExtent[1] + (valRange * padScale)]
+                return(paddedDomain);
+            }
+
+            const padScale = 0.1;
+            
+            const xExtent = d3.extent(axesData, (d) => +d[xVar]);
+            xScale.range([0, chartWidth]).domain(makePaddedDomain(xExtent, padScale));
+
+            const yExtent = d3.extent(axesData, (d) => +d[yVar]);
+            yScale.range([chartHeight, 0]).domain(makePaddedDomain(yExtent, padScale));
 
             // Update axes
             xAxis.scale(xScale);
@@ -112,8 +117,8 @@ export default function ScatterPlot() {
             ele.select('.axis.y').transition().duration(1000).call(yAxis);
 
             // Update titles
-            ele.select('.axis-title.x').text(xTitle)
-            ele.select('.axis-title.y').text(yTitle)
+            ele.select('.axis-title.x').text(xTitle);
+            ele.select('.axis-title.y').text(yTitle);
 
             // Draw markers
             const circles = ele.select('.scatterG').selectAll('circle').data(data.values, (d) => d["barcode"]);
@@ -128,7 +133,7 @@ export default function ScatterPlot() {
                     .attr('r', radius)
                     .attr("id", (d) => d.barcode),
                 update => update
-                    .style('opacity', .8)
+                    // .style('opacity', .8)
                     .attr('cx', (d) => xScale(d[xVar]))
                     .attr('cy', (d) => yScale(d[yVar])),
                 // exit => exit.remove()
