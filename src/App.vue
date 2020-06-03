@@ -65,7 +65,7 @@
     <v-content>
       <v-container fluid>
           <v-row>
-            <v-col cols="5">
+            <v-col cols="4">
               <v-file-input name="hi" accept=".tsv" label="Upload TSV data file" @change="onFileChange"></v-file-input>
               <div v-show="abs.length != 0">
                 <v-chip
@@ -92,7 +92,7 @@
               </div>
             </v-col>
 
-            <v-col v-show="abs.length != 0" cols="7" text-center justify-center>
+            <v-col v-show="abs.length != 0" cols="8" text-center justify-center>
               <p class="title mb-0">Dashboard settings</p>
               <v-row>
                 <v-col cols="6">
@@ -120,7 +120,7 @@
                   </v-slider>
                 </v-col>
 
-                <v-col cols="4">
+                <v-col cols="3">
                   <p class="subtitle-2">Dimension reduction method</p>
                   <v-select
                     outlined
@@ -130,6 +130,16 @@
                     label="Select method"
                   ></v-select>
                 </v-col>
+
+                <v-col cols="3">
+                  <p class="subtitle-2">Cluster color (beta)</p>
+                  <v-select
+                    outlined
+                    disabled
+                    dense
+                    label="Select coloring"
+                  ></v-select>
+                </v-col>
               </v-row>
             </v-col>
         </v-row>
@@ -137,41 +147,17 @@
         <v-row
           align="start"
           justify="space-around"
+          v-show="abs.length != 0"
         >
-          <v-col v-show="abs.length != 0" cols="5" text-center justify-center>
+          <v-col cols="6" text-center justify-center>
               <p class="title mb-0">Colored by cluster</p>
-              <p class="caption">Click on graph to place anchors for polygonal gate. Double click to finish. Drag gate as needed. Click outside gate to reset.</p>
+              <p class="caption">Click on graph to place anchors for gating. Double click to finish | Drag gate | Double click outsite to reset.</p>
+              <p class="subtitle-2">Polygonal gate details</p>
+              <p class="caption">Current polygonal gate: 24 cells selected of 773 cells (5.3%)</p>
               <div id="mainScatter"></div>
           </v-col>
 
-          <v-col v-show="abs.length != 0" text-center justify-center>
-            <p class="title">Colored by scaled expression level</p>
-
-            <v-switch
-              label="Enable threshold filter"
-              v-model="enableThresh"
-            ></v-switch>
-
-            <v-slider
-              v-model="expThresh"
-              label="Threshold"
-              hint="Select antibodies on right panel. Can enable minimum threshold filter to increase app responsiveness."
-              persistent-hint
-              thumb-label="always"
-              :thumb-size="24"
-              :disabled="!enableThresh"
-              :min="minThresh"
-              :max="maxThresh"
-              step="0.1"
-              type="number"
-            ></v-slider>
-
-            <div id="expressionScatter"></div>
-          </v-col>
-        </v-row>
-
-        <v-row v-show="abs.length != 0">
-          <v-col cols="5">
+          <v-col cols="6">
             <p class="title mb-0">Polygonal gate</p>
             <p class="caption">Drag and drop antibodies from right panel to the below boxes.</p>
             <v-row>
@@ -182,7 +168,7 @@
                 >
                   <v-card-subtitle class="pb-0">x-axis antibody</v-card-subtitle>
                     <draggable v-model="polyGateXAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 15px">
-                        <v-card-text v-for="(ab, i) in polyGateXAb" :key="`x-${i}`">
+                        <v-card-text v-for="(ab, i) in polyGateXAb" :key="`x-${i}`" class="py-2">
                           <div v-text="ab"></div>
                         </v-card-text>
                     </draggable>
@@ -196,7 +182,7 @@
                 >
                   <v-card-subtitle class="pb-0">y-axis antibody</v-card-subtitle>
                     <draggable v-model="polyGateYAb" :options="{group: {name:'test', pull:'clone'}, sort: false}" style="min-height: 15px">
-                        <v-card-text v-for="(ab, i) in polyGateYAb" :key="`y-${i}`">
+                        <v-card-text v-for="(ab, i) in polyGateYAb" :key="`y-${i}`" class="py-2">
                           <div v-text="ab"></div>
                         </v-card-text>
                     </draggable>
@@ -205,6 +191,35 @@
             </v-row>
 
             <div id="polyGateScatter"></div>
+          </v-col>
+        </v-row>
+
+        <v-row v-show="abs.length != 0">
+          <v-col v-show="abs.length != 0" text-center justify-center>
+            <p class="title">Colored by scaled expression level</p>
+
+            <v-col cols="6" class="pl-0 pt-0">
+              <v-switch
+                label="Enable threshold filter"
+                v-model="enableThresh"
+              ></v-switch>
+              <v-slider
+                v-model="expThresh"
+                label="Threshold"
+                hint="Select antibodies on right panel. Can enable minimum threshold filter to increase app responsiveness."
+                persistent-hint
+                thumb-label="always"
+                :thumb-size="24"
+                :disabled="!enableThresh"
+                :min="minThresh"
+                :max="maxThresh"
+                step="0.1"
+                type="number"
+              ></v-slider>
+            </v-col>
+
+
+            <div id="expressionScatter"></div>
           </v-col>
         </v-row>
       </v-container>
@@ -483,7 +498,7 @@ export default {
             .y(scatter.yScale())
             .on("start", () => {
               this.polyGateIndices = [];
-              this.makePolyGateScatter();
+              // this.makePolyGateScatter();
 
               d3.select("#mainScatter").selectAll("circle").classed("selected", false);
             })
@@ -518,7 +533,7 @@ export default {
           return false;
         }
       });
-
+      
       this.dataPolyGate = dataTemp;
     },
 
@@ -564,8 +579,8 @@ export default {
 
     makeExpressionScatter() {
       const scatter = ScatterPlot()
-        .width(250)
-        .height(250)
+        .width(275)
+        .height(275)
         .radius(0.5)
         .constrainAxes(this.currentDataClean)
         .xVar("xaxis_" + this.dimMethodSel)

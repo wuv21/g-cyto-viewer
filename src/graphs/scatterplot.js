@@ -103,7 +103,7 @@ export default function ScatterPlot() {
             }
 
             const padScale = 0.1;
-            
+
             const xExtent = d3.extent(axesData, (d) => +d[xVar]);
             xScale.range([0, chartWidth]).domain(makePaddedDomain(xExtent, padScale));
 
@@ -213,7 +213,6 @@ export default function ScatterPlot() {
         yVar = value;
         return chart;
     };
-
     chart.fillVar = function(value) {
         if (!arguments.length) return fillVar;
         fillVar = value;
