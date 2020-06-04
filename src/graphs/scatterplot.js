@@ -204,13 +204,8 @@ export default function ScatterPlot() {
         return chart;
     };
     chart.yScale = function(value) {
-        if (!arguments.length) return xScale;
-        xScale = value;
-        return chart;
-    };
-    chart.yVar = function(value) {
-        if (!arguments.length) return yVar;
-        yVar = value;
+        if (!arguments.length) return yScale;
+        yScale = value;
         return chart;
     };
     chart.fillVar = function(value) {
