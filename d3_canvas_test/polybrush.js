@@ -7,85 +7,90 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-import * as d3 from "d3";
+
+// Modified from http://bl.ocks.org/junwang23/bfcf242c09f0aaa0d6a27cdc84285a8e
+
+// import * as d3 from "d3";
 
 (function(d3) {
     d3.polybrush = function() {
-        var dispatch = d3.dispatch("start", "brush", "end"),
-            el = null,
+        const dispatch = d3.dispatch("start", "brush", "end");
+
+        let el = null,
             x = null,
             y = null,
             extent = [],
             firstClick = true,
             firstTime = true,
             wasDragged = false,
-            origin = null,
-            line = d3.line()
-            .x(function(d) {
-                return d[0];
-            })
-            .y(function(d) {
-                return d[1];
-            });
-        var brush = function(g) {
+            origin = null
+
+        const line = d3.line()
+            .x((d) => d[0])
+            .y((d) => d[1]);
+
+        function brush(g) {
             el = g;
             g.each(function() {
-                var bg, e;
-                g = d3.select(this)
+                const g = d3.select(this)
                     .style("pointer-events", "all")
                     .on("click.brush", addAnchor);
-                bg = g.selectAll(".background")
+
+                const bg = g.selectAll(".background")
                     .data([0]).enter()
                     .append("rect")
                     .attr("class", "background")
                     .style("visibility", "hidden")
                     .style("cursor", "crosshair");
+
                 g.selectAll(".extent")
                     .data([extent]).enter()
                     .append("path")
                     .attr("class", "extent")
-                    .attr("opacity", 0.3)
+                    .attr("opacity", 0.2)
                     .style("cursor", "move");
 
                 if (x) {
-                    e = scaleExtent(x.range());
+                    const e = scaleExtent(x.range());
                     bg.attr("x", e[0]).attr("width", e[1] - e[0]);
                 }
                 if (y) {
-                    e = scaleExtent(y.range());
+                    const e = scaleExtent(y.range());
                     bg.attr("y", e[0]).attr("height", e[1] - e[0]);
                 }
             });
-        };
-        var drawPath = function() {
+        }
+
+        function drawPath() {
             return el.each(function() {
                 d3.select(this)
                     .selectAll("g path").attr("d", function(d) {
                         return line(d) + "Z";
                     });
             });
-        };
-        var scaleExtent = function(domain) {
-            var start, stop;
-            start = domain[0];
-            stop = domain[domain.length - 1];
+        }
+
+        function scaleExtent(domain) {
+            const start = domain[0];
+            const stop = domain[domain.length - 1];
             if (start < stop) {
                 return [start, stop];
             } else {
                 return [stop, start];
             }
-        };
-        var withinBounds = function(point) {
-            var rangeX, rangeY, _x, _y;
-            rangeX = scaleExtent(x.range());
-            rangeY = scaleExtent(y.range());
-            _x = Math.max(rangeX[0], Math.min(rangeX[1], point[0]));
-            _y = Math.max(rangeY[0], Math.min(rangeY[1], point[1]));
+        }
+
+        function withinBounds(point) {
+            const rangeX = scaleExtent(x.range());
+            const rangeY = scaleExtent(y.range());
+            const _x = Math.max(rangeX[0], Math.min(rangeX[1], point[0]));
+            const _y = Math.max(rangeY[0], Math.min(rangeY[1], point[1]));
+
             return point[0] === _x && point[1] === _y;
-        };
-        var moveAnchor = function(target) {
-            var point;
-            point = d3.mouse(target);
+        }
+
+        function moveAnchor(target) {
+            const point = d3.mouse(target);
             if (firstTime) {
                 extent.push(point);
                 firstTime = false;
@@ -96,24 +101,27 @@ import * as d3 from "d3";
                 drawPath();
                 dispatch.call("brush", this);
             }
-        };
-        var closePath = function() {
-            var w;
-            w = d3.select(window);
+        }
+
+        function closePath() {
+            const w = d3.select(window);
             w.on("dblclick.brush", null).on("mousemove.brush", null);
+
             firstClick = true;
             if (extent.length === 2 && extent[0][0] === extent[1][0] && extent[0][1] === extent[1][1]) {
                 extent.splice(0, extent.length);
             }
+
             d3.select(".extent").on("mousedown.brush", moveExtent);
+            
             return dispatch.call("end", this);
-        };
-        var addAnchor = function() {
-            var w,
-                _this = this;
-            // g = d3.select(this);
-            w = d3.select(window);
+        }
+
+        function addAnchor() {
+            const _this = this;
+            const w = d3.select(window);
             firstTime = true;
+
             if (wasDragged) {
                 wasDragged = false;
                 return;
@@ -121,10 +129,12 @@ import * as d3 from "d3";
             if (firstClick) {
                 extent.splice(0, extent.length);
                 firstClick = false;
+                
                 d3.select(".extent").on("mousedown.brush", null);
-                w.on("mousemove.brush", function() {
-                    return moveAnchor(_this);
-                }).on("dblclick.brush", closePath);
+                
+                w.on("mousemove.brush", () => moveAnchor(_this))
+                    .on("dblclick.brush", closePath);
+
                 dispatch.call("start", this);
             }
             if (extent.length > 1) {
@@ -132,48 +142,55 @@ import * as d3 from "d3";
             }
             extent.push(d3.mouse(this));
             return drawPath();
-        };
-        var dragExtent = function(target) {
-            var checkBounds, fail, p, point, scaleX, scaleY, updateExtentPoint, _i, _j, _len, _len1;
-            point = d3.mouse(target);
-            scaleX = point[0] - origin[0];
-            scaleY = point[1] - origin[1];
-            fail = false;
+        }
+
+         function dragExtent(target) {
+            const point = d3.mouse(target);
+            const scaleX = point[0] - origin[0];
+            const scaleY = point[1] - origin[1];
+            let fail = false;
+
             origin = point;
-            updateExtentPoint = function(p) {
+            
+            function updateExtentPoint(p) {
                 p[0] += scaleX;
                 p[1] += scaleY;
-            };
-            for (_i = 0, _len = extent.length; _i < _len; _i++) {
-                p = extent[_i];
-                updateExtentPoint(p);
             }
-            checkBounds = function(p) {
+
+            extent.forEach((p) => {
+                updateExtentPoint(p);
+            });
+
+            function checkBounds(p) {
                 if (!withinBounds(p)) {
                     fail = true;
                 }
                 return fail;
-            };
-            for (_j = 0, _len1 = extent.length; _j < _len1; _j++) {
-                p = extent[_j];
-                checkBounds(p);
             }
+
+            extent.forEach((p) => {
+                checkBounds(p);
+            });
+
             if (fail) {
                 return;
             }
+
             drawPath();
             return dispatch.call("brush", this, {
                 mode: "move"
             });
-        };
-        var dragStop = function() {
+        }
+
+        function dragStop() {
             var w;
             w = d3.select(window);
             w.on("mousemove.brush", null).on("mouseup.brush", null);
             wasDragged = true;
             return dispatch.call("end", this);
-        };
-        var moveExtent = function() {
+        }
+
+        function moveExtent() {
             var _this = this;
             d3.event.stopPropagation();
             d3.event.preventDefault();
@@ -183,10 +200,12 @@ import * as d3 from "d3";
                 }).on("mouseup.brush", dragStop);
                 origin = d3.mouse(this);
             }
-        };
+        }
+
         brush.isWithinExtent = function(x, y) {
             return d3.polygonContains(extent, [x, y]);
         };
+
         brush.x = function(z) {
             if (!arguments.length) {
                 return x;
@@ -194,6 +213,7 @@ import * as d3 from "d3";
             x = z;
             return brush;
         };
+
         brush.y = function(z) {
             if (!arguments.length) {
                 return y;
@@ -201,6 +221,7 @@ import * as d3 from "d3";
             y = z;
             return brush;
         };
+
         brush.extent = function(z) {
             if (!arguments.length) {
                 return extent;
@@ -208,10 +229,12 @@ import * as d3 from "d3";
             extent = z;
             return brush;
         };
+
         brush.clear = function() {
             extent.splice(0, extent.length);
             return brush;
         };
+        
         brush.empty = function() {
             return extent.length === 0;
         };

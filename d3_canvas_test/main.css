@@ -1,0 +1,19 @@
+.axis line,
+.axis path {
+  fill: none;
+  stroke: #aeaeae;
+}
+
+.axis-title {
+  text-anchor: middle;
+  font-size: 12px;
+  color: #000;
+}
+
+.chart-svg {
+    position: absolute;
+}
+
+.chart {
+    display: inline-block;
+}
