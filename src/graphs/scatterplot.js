@@ -44,9 +44,6 @@ export default function ScatterPlot() {
 
             // Use the data-join to create the svg (if necessary)
             const ele = d3.select(this);
-            
-            // fix margins
-            ele.style("height", height + 10);
 
             const svg = ele.selectAll("svg").data([data.values]);
 
