@@ -109,10 +109,10 @@
                 ></v-select>
               </v-col>
 
-              <v-col cols="3">
+              <!-- <v-col cols="3">
                 <p class="subtitle-2">Cluster color (beta)</p>
                 <v-select outlined disabled dense label="Select coloring"></v-select>
-              </v-col>
+              </v-col> -->
             </v-row>
           </v-col>
         </v-row>
@@ -728,4 +728,8 @@ div.tooltip-donut {
 .centered-input input {
   text-align: center;
 }
+
+/* #mainScatter, #expressionScatter {
+  margin-bottom: 2em;
+} */
 </style>

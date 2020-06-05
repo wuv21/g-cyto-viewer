@@ -153,6 +153,7 @@ export default function ScatterPlot() {
                     .attr('height', height - margin.bottom - margin.top)
                     .style('margin-left', margin.left + 'px')
                     .style('margin-right', margin.right + 'px')
+                    .style('margin-bottom', margin.bottom + 'px')
                     .style('margin-top', margin.top + 'px')
                     .attr('class', 'canvas-plot')
                     .attr('id', canvasID);
