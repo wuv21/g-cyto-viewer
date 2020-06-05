@@ -1,7 +1,7 @@
 // modified from mike freeman's code on reusability
 // https://github.com/info474-s17/m15-reusability/tree/complete/demo-4
 
-import * as d3 from "d3";
+// import * as d3 from "d3";
 
 export default function ScatterPlot() {
     // Set default values
@@ -32,7 +32,7 @@ export default function ScatterPlot() {
         const chartWidth = width - margin.left - margin.right;
 
         // Iterate through selections, in case there are multiple
-        selection.each(function(data) {
+        selection.each(function (data) {
             // set up title
             title = data.title;
 
@@ -44,18 +44,15 @@ export default function ScatterPlot() {
 
             // Use the data-join to create the svg (if necessary)
             const ele = d3.select(this);
-            
-            // fix margins
-            ele.style("height", height + 10);
-
             const svg = ele.selectAll("svg").data([data.values]);
 
             // Append static elements (i.e., only added once)
             const svgEnter = svg.enter()
                 .append("svg")
                 .attr('width', width)
-                .attr("height", height);
-            
+                .attr("height", height)
+                .attr('class', 'chart-svg')
+
             // Title G
             svgEnter.append('text')
                 .attr('transform', 'translate(' + (margin.left + chartWidth / 2) + ',' + 30 + ')')
@@ -103,7 +100,7 @@ export default function ScatterPlot() {
                 const valRange = Math.abs(valExtent[1] - valExtent[0])
 
                 const paddedDomain = [valExtent[0] - (valRange * padScale), valExtent[1] + (valRange * padScale)]
-                return(paddedDomain);
+                return (paddedDomain);
             }
 
             const padScale = 0.1;
@@ -124,13 +121,16 @@ export default function ScatterPlot() {
             ele.select('.axis-title.x').text(xTitle);
             ele.select('.axis-title.y').text(yTitle);
 
-            // Draw markers
-            const circles = ele.select('.scatterG').selectAll('circle').data(data.values, (d) => d["barcode"]);
+            var detachedContainer = document.createElement("custom");
+            var dataContainer = d3.select(detachedContainer);
+
+            // // Draw markers
+            const circles = dataContainer.selectAll('circle').data(data.values, (d) => d["barcode"]);
 
             // Use the .enter() method to get entering elements, and assign initial position
-            circles.join(
+            const dataBinding = circles.join(
                 enter => enter.append('circle')
-                    .attr('fill', (d) => fillScale(d[fillVar]))
+                    .attr('fill', fillScale(d[fillVar]))
                     .style('opacity', .8)
                     .attr('cx', (d) => xScale(d[xVar]))
                     .attr('cy', (d) => yScale(d[yVar]))
@@ -143,86 +143,116 @@ export default function ScatterPlot() {
                 // exit => exit.remove()
             );
             
-            // circles.enter().append('circle')
-            //     .attr('fill', (d) => fillScale(d[fillVar]))
-            //     .style('opacity', .2)
-            //     .attr('cx', (d) => xScale(d[xVar]))
-            //     .attr('cy', (d) => yScale(d[yVar]))
-            //     .attr('r', radius)
-            //     .attr("id", (d) => d.barcode)
-            //     // .attr("class", ".selected")
-            //     // Transition properties of the + update selections
-            //     .merge(circles)
-            //     // .transition()
-            //     // .duration(2000)
-            //     // .delay((d) => xScale(d.x) * 5)
-            //     .style('opacity', .8);
+            const canvasID = "canvas-" + data.key;
+            const canvasNode = document.getElementById(canvasID);
+            let canvasChart = null;
 
-            // // Use the .exit() and .remove() methods to remove elements that are no longer in the data
-            // circles.exit().remove();
+            if (canvasNode === null) {
+                canvasChart = d3.select(this).append('canvas')
+                    .attr('width', width - margin.left - margin.right)
+                    .attr('height', height - margin.bottom - margin.top)
+                    .style('margin-left', margin.left + 'px')
+                    .style('margin-right', margin.right + 'px')
+                    .style('margin-top', margin.top + 'px')
+                    .attr('class', 'canvas-plot')
+                    .attr('id', canvasID);
+            } else {
+                canvasChart = d3.select(document.getElementById(canvasID));
+            }
+
+            const context = canvasChart.node().getContext('2d');
+
+            function drawCanvas() {
+                // clear canvas
+                // context.fillStyle = "#FFFFFF00";
+                // context.rect(0,0,canvasChart.attr("width"),canvasChart.attr("height"));
+                // context.fill();
+
+                context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
+                dataBinding.each(function (d) {
+                    //Select one of the nodes/circles
+                    var node = d3.select(this);
+    
+                    //Draw each circle
+                    context.fillStyle = node.attr("fill");
+                    context.beginPath();
+                    context.arc(node.attr("cx"), node.attr("cy"), node.attr("r"), 0, 2 * Math.PI, true);
+                    context.fill();
+                    context.closePath();
+                });
+            }
+
+            d3.timer(drawCanvas);
         });
     }
 
     // Getter/setter methods to change locally scoped options
-    chart.height = function(value) {
+    chart.height = function (value) {
         if (!arguments.length) return height;
         height = value;
         return chart;
     };
 
-    chart.width = function(value) {
+    chart.width = function (value) {
         if (!arguments.length) return width;
         width = value;
         return chart;
     };
 
-    chart.xTitle = function(value) {
+    chart.margin = function (value) {
+        if (!arguments.length) return margin;
+        margin = value;
+        return chart;
+    };
+
+    chart.xTitle = function (value) {
         if (!arguments.length) return xTitle;
         xTitle = value;
         return chart;
     };
 
-    chart.yTitle = function(value) {
+    chart.yTitle = function (value) {
         if (!arguments.length) return yTitle;
         yTitle = value;
         return chart;
     };
-    chart.radius = function(value) {
+    chart.radius = function (value) {
         if (!arguments.length) return radius;
         radius = value;
         return chart;
     };
-    chart.xVar = function(value) {
+    chart.xVar = function (value) {
         if (!arguments.length) return xVar;
         xVar = value;
         return chart;
     };
-    chart.yVar = function(value) {
+    chart.yVar = function (value) {
         if (!arguments.length) return yVar;
         yVar = value;
         return chart;
     };
-    chart.xScale = function(value) {
+    chart.xScale = function (value) {
         if (!arguments.length) return xScale;
         xScale = value;
         return chart;
     };
-    chart.yScale = function(value) {
+    chart.yScale = function (value) {
         if (!arguments.length) return yScale;
         yScale = value;
         return chart;
     };
-    chart.fillVar = function(value) {
+    chart.fillVar = function (value) {
         if (!arguments.length) return fillVar;
         fillVar = value;
         return chart;
     };
-    chart.fillScale = function(value) {
+    chart.fillScale = function (value) {
         if (!arguments.length) return fillScale;
         fillScale = value;
         return chart;
     };
-    chart.constrainAxes = function(value) {
+    chart.constrainAxes = function (value) {
         if (!arguments.length) return constrainAxes;
         constrainAxes = value;
         return chart;
