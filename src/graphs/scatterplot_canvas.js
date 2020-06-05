@@ -1,7 +1,7 @@
 // modified from mike freeman's code on reusability
 // https://github.com/info474-s17/m15-reusability/tree/complete/demo-4
 
-// import * as d3 from "d3";
+import * as d3 from "d3";
 
 export default function ScatterPlot() {
     // Set default values
@@ -130,7 +130,7 @@ export default function ScatterPlot() {
             // Use the .enter() method to get entering elements, and assign initial position
             const dataBinding = circles.join(
                 enter => enter.append('circle')
-                    .attr('fill', fillScale(d[fillVar]))
+                    .attr('fill', (d) => fillScale(d[fillVar]))
                     .style('opacity', .8)
                     .attr('cx', (d) => xScale(d[xVar]))
                     .attr('cy', (d) => yScale(d[yVar]))
@@ -170,7 +170,7 @@ export default function ScatterPlot() {
 
                 context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
-                dataBinding.each(function (d) {
+                dataBinding.each(function() {
                     //Select one of the nodes/circles
                     var node = d3.select(this);
     
