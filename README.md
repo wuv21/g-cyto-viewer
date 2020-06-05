@@ -84,9 +84,13 @@ To build upon this tool or to run a local instance:
 
 * [Vue](https://vuejs.org/) - Web framework used
 * [Vuetify](https://vuetifyjs.com/en/) - UI framework used with Vue
-* [D3](https://d3js.org/) - Comprehesnvie data visualization package
+* [D3](https://d3js.org/) - Comprehensive data visualization package
 * [D3 polybrush](https://gist.github.com/gtb104/3667340) and [D3 polybrush updated](http://bl.ocks.org/junwang23/bfcf242c09f0aaa0d6a27cdc84285a8e) - Polybrush for gating
 
 ## Acknowledgments
 
 * Much thanks to [Mike Freeman](https://info474-s17.github.io/book/d3-reusability.html) for his tutorials regarding reusable charts and his template for a scatterplot chart.
+* Much thanks to [Irene Ros](https://bocoup.com/blog/d3js-and-canvas) for her tutorial regarding d3 and canvas.
+* Much thanks to [Nadieh Brehmer](https://www.visualcinnamon.com/2015/11/learnings-from-a-d3-js-addict-on-starting-with-canvas.html) for her tutorial regarding d3 and canvas.
+* Much thanks to the following tutorial(s) for more d3 and canvas implementations
+    - [D3 brush and zoom](https://medium.com/@xoor/brush-and-zoom-with-d3-js-and-canvas-71859cd28832)
