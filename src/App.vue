@@ -260,9 +260,6 @@ export default {
   }),
   watch: {
     dataFile(d) {
-      // reset orgDataClean if file changes...
-      // TODO make a better reset...
-      // this.orgDataClean = [];
       if (!d) {
         return;
       }
@@ -489,13 +486,10 @@ export default {
   },
   methods: {
     onFileChange(e) {
-      if (!e) {
-        Object.assign(this.$data, this.$options.data.apply(this));
-
-        this.resetGraphs(["#mainScatter", "#polyGateScatter", "#expressionScatter"]);
-      } else {
+      this.resetGraphs(["#mainScatter", "#polyGateScatter", "#expressionScatter"]);
+      if (e) {
         this.showSpinner = true;
-
+        
         const reader = new FileReader();
         reader.onload = event => {
           this.dataFile = event.target.result;
@@ -506,6 +500,8 @@ export default {
     },
 
     resetGraphs(nodeID) {
+      Object.assign(this.$data, this.$options.data.apply(this));
+
       if (typeof(nodeID) == "string") {
         d3.select(nodeID).selectAll("*").remove();
       } else if (Array.isArray(nodeID)) {
