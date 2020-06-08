@@ -224,7 +224,7 @@ export default function ScatterPlot() {
                 });
             }
 
-            d3.timer(drawCanvas);
+            drawCanvas();
         });
     }
 
