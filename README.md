@@ -91,6 +91,6 @@ To build upon this tool or to run a local instance:
 
 * Much thanks to [Mike Freeman](https://info474-s17.github.io/book/d3-reusability.html) for his tutorials regarding reusable charts and his template for a scatterplot chart.
 * Much thanks to [Irene Ros](https://bocoup.com/blog/d3js-and-canvas) for her tutorial regarding d3 and canvas.
-* Much thanks to [Nadieh Brehmer](https://www.visualcinnamon.com/2015/11/learnings-from-a-d3-js-addict-on-starting-with-canvas.html) for her tutorial regarding d3 and canvas.
+* Much thanks to [Nadieh Bremer](https://www.visualcinnamon.com/2015/11/learnings-from-a-d3-js-addict-on-starting-with-canvas.html) for her tutorial regarding d3 and canvas.
 * Much thanks to the following tutorial(s) for more d3 and canvas implementations
     - [D3 brush and zoom](https://medium.com/@xoor/brush-and-zoom-with-d3-js-and-canvas-71859cd28832)

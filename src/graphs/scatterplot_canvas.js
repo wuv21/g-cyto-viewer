@@ -18,6 +18,7 @@ export default function ScatterPlot() {
         title = 'Chart title',
         constrainAxes = null,
         radius = 2,
+        legend = false,
         margin = {
             left: 70,
             bottom: 50,
@@ -27,6 +28,16 @@ export default function ScatterPlot() {
 
     // Function returned by ScatterPlot
     function chart(selection) {
+        // margin adjustment if legend setting is on
+        // TODO allow for more responsive setting based on how long fill identity text is...
+        if (legend && fillScale != "") {
+            const longestFillItem = fillScale.domain()
+                .reduce((maxLen, d) => d.length > maxLen ? d.length : maxLen, 0);
+
+            margin.right = margin.right + longestFillItem * 6.5;
+            width = height + longestFillItem * 6.5;
+        }
+
         // Height/width of the drawing area itself
         const chartHeight = height - margin.bottom - margin.top;
         const chartWidth = width - margin.left - margin.right;
@@ -40,7 +51,6 @@ export default function ScatterPlot() {
                 fillVar = "expression";
                 fillScale = data.fillScale;
             }
-
 
             // Use the data-join to create the svg (if necessary)
             const ele = d3.select(this);
@@ -83,6 +93,36 @@ export default function ScatterPlot() {
             svgEnter.append('text')
                 .attr('transform', 'translate(' + (margin.left - 40) + ',' + (margin.top + chartHeight / 2) + ') rotate(-90)')
                 .attr('class', 'axis-title y');
+
+            // Add legend if settings are enabled for this
+            // Legend derived from http://bl.ocks.org/weiglemc/6185069
+            if (legend && fillScale != "") {
+                const legend = svgEnter.append('g')
+                    .attr('transform', 'translate(' + (width - margin.right - 30) + ',' + margin.top + ')')
+                    .attr('class', 'legend');
+
+                const legendInd = legend.selectAll('.legend-g')
+                    .data(fillScale.domain().sort())
+                    .enter()
+                    .append("g")
+                    .attr('class', 'legend-g')
+                    .attr("transform", (d, i) => "translate(0," + i * 20 + ")");
+
+                legendInd.append("rect")
+                    .attr("x", 5)
+                    .attr("width", 12)
+                    .attr("height", 12)
+                    .style("fill", fillScale);
+              
+                legendInd.append("text")
+                    .attr("x", 25)
+                    .attr("y", 6)
+                    .attr("dy", ".35em")
+                    .style("text-anchor", "start")
+                    .style("font-size", 12)
+                    .text((d) => d)
+
+            }
 
             // Define xAxis and yAxis functions
             const xAxis = d3.axisBottom();
@@ -256,6 +296,11 @@ export default function ScatterPlot() {
     chart.constrainAxes = function (value) {
         if (!arguments.length) return constrainAxes;
         constrainAxes = value;
+        return chart;
+    };
+    chart.legend = function (value) {
+        if (!arguments.length) return legend;
+        legend = value;
         return chart;
     };
     return chart;

@@ -251,6 +251,10 @@ export default {
   }),
   watch: {
     dataFile(d) {
+      // reset orgDataClean if file changes...
+      // TODO make a better reset...
+      // this.orgDataClean = [];
+
       let dMat = d.split("\n");
       this.header = dMat[0].split("\t");
 
@@ -270,7 +274,11 @@ export default {
           if (h === "barcode") {
             allNth.push(a[n]);
           } else {
-            allNth.push(parseFloat(a[n]));
+            if (isNaN(a[n])){
+              allNth.push(a[n]);
+            } else {
+              allNth.push(parseFloat(a[n]));
+            }
           }
         });
 
@@ -328,6 +336,7 @@ export default {
           return d.cluster;
         })
       );
+
       this.clusterScale = d3.scaleOrdinal(d3.schemePaired).domain(uniq_clusts);
 
       // save other settings
@@ -462,7 +471,7 @@ export default {
       ];
 
       const scatter = ScatterPlot()
-        .width(500)
+        // .width(600)...since using legend, will auto calculate width
         .height(500)
         .radius(1)
         .xVar("xaxis_" + this.dimMethodSel)
@@ -470,7 +479,8 @@ export default {
         .xTitle(this.dimMethodSel + " 1")
         .yTitle(this.dimMethodSel + " 2")
         .fillVar("cluster")
-        .fillScale(this.clusterScale);
+        .fillScale(this.clusterScale)
+        .legend(true);
 
       const draw = () => {
         const charts = d3
