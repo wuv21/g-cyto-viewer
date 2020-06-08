@@ -240,7 +240,6 @@ export default {
     dataCite: [],
     orgDataClean: [],
     currentDataClean: [],
-    currentDataCleanExpression: [],
     dataPolyGate: [],
     polyGateXAb: [],
     polyGateYAb: [],
@@ -253,7 +252,7 @@ export default {
     enableThresh: false,
     expThresh: 0,
     minThresh: 0,
-    maxThresh: 2,
+    maxThresh: 2, // will need to edit for flow datasets
     cellsUsed: 0,
     dimMethods: [],
     dimMethodSel: null,
@@ -264,6 +263,9 @@ export default {
       // reset orgDataClean if file changes...
       // TODO make a better reset...
       // this.orgDataClean = [];
+      if (!d) {
+        return;
+      }
 
       let dMat = d.split("\n");
       this.header = dMat[0].split("\t");
@@ -327,7 +329,7 @@ export default {
       }
 
       // set default to full dataset
-      this.currentDataClean = this.orgDataClean;
+      this.currentDataClean = [...Array(this.orgDataClean.length).keys() ].map(i => i);
 
       // precalculate d3 scales
       this.abs.forEach(a => {
@@ -342,8 +344,8 @@ export default {
 
       // precalculate cluster scale
       const uniq_clusts = _.uniq(
-        _.map(this.currentDataClean, d => {
-          return d.cluster;
+        _.map(this.currentDataClean, i => {
+          return this.orgDataClean[i].cluster;
         })
       );
 
@@ -358,38 +360,42 @@ export default {
     },
 
     selAbs() {
-      this.makeExpressionScatterData();
-      this.makeExpressionScatter();
+      if (this.selAbs.length != 0) {
+        const expressionData = this.makeExpressionScatterData();
+        this.makeExpressionScatter(expressionData);
+      }
     },
 
     enableThresh() {
       if (this.selAbs.length != 0) {
-        this.makeExpressionScatterData();
-        this.makeExpressionScatter();
+        const expressionData = this.makeExpressionScatterData();
+        this.makeExpressionScatter(expressionData);
       }
     },
 
     expThresh() {
       if (this.selAbs.length != 0) {
-        this.makeExpressionScatterData();
-        this.makeExpressionScatter();
+        const expressionData = this.makeExpressionScatterData();
+        this.makeExpressionScatter(expressionData);
       }
     },
 
     cellsUsed(newVal, prevVal) {
+      if (this.orgDataClean.length == 0) {
+        return;
+      }
+
       if (newVal != prevVal) {
-        if (this.cellsUsed == this.currentDataClean.length) {
-          this.currentDataClean = this.orgDataClean;
+        if (this.cellsUsed == this.orgDataClean.length) {
+          this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
         } else {
-          this.currentDataClean = this.getRandomNFromArray(
-            this.orgDataClean,
-            this.cellsUsed
-          );
+          this.currentDataClean = this.genRandomIndices(this.cellsUsed, this.orgDataClean.length);
         }
 
         this.makeMainScatter();
-        this.makeExpressionScatterData();
-        this.makeExpressionScatter();
+
+        const expressionData = this.makeExpressionScatterData();
+        this.makeExpressionScatter(expressionData);
 
         if (this.dataPolyGate.length > 0) {
           this.updatePolyGate(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
@@ -406,6 +412,10 @@ export default {
     },
 
     dataPolyGate() {
+      if (this.orgDataClean.length == 0) {
+        return;
+      }
+
       if (
         this.dataPolyGate.length > 0 &&
         this.polyGateXAb.length == 1 &&
@@ -416,6 +426,9 @@ export default {
     },
 
     polyGateXAb(newVal, prevVal) {
+      if (this.orgDataClean.length == 0) {
+        return;
+      }
       this.polyGateXAb = this.checkPolyGateAb(prevVal, newVal);
 
       if (this.dataPolyGate.length > 0 && this.polyGateYAb.length == 1) {
@@ -424,6 +437,10 @@ export default {
     },
 
     polyGateYAb(newVal, prevVal) {
+      if (this.orgDataClean.length == 0) {
+        return;
+      }
+
       this.polyGateYAb = this.checkPolyGateAb(prevVal, newVal);
 
       if (this.dataPolyGate.length > 0 && this.polyGateXAb.length == 1) {
@@ -432,6 +449,10 @@ export default {
     },
 
     dimMethodSel() {
+      if (this.orgDataClean.length == 0) {
+        return;
+      }
+
       if (this.polyGateBrush) {
         if (this.dataPolyGate.length > 0) {
           this.dataPolyGate = [];
@@ -447,12 +468,16 @@ export default {
       this.makeMainScatter();
 
       if (this.selAbs.length > 0) {
-        this.makeExpressionScatterData();
-        this.makeExpressionScatter();
+        const expressionData = this.makeExpressionScatterData();
+        this.makeExpressionScatter(expressionData);
       }
     },
 
     absSearch() {
+      if (this.orgDataClean.length == 0) {
+        return;
+      }
+
       if (this.absSearch === null || this.absSearch == "") {
         this.absDisplayBool = Array(this.abs.length).fill(true);
       } else {
@@ -464,14 +489,30 @@ export default {
   },
   methods: {
     onFileChange(e) {
-      this.showSpinner = true;
+      if (!e) {
+        Object.assign(this.$data, this.$options.data.apply(this));
 
-      const reader = new FileReader();
-      reader.onload = event => {
-        this.dataFile = event.target.result;
-      };
+        this.resetGraphs(["#mainScatter", "#polyGateScatter", "#expressionScatter"]);
+      } else {
+        this.showSpinner = true;
 
-      reader.readAsText(e);
+        const reader = new FileReader();
+        reader.onload = event => {
+          this.dataFile = event.target.result;
+        };
+
+        reader.readAsText(e);
+      }
+    },
+
+    resetGraphs(nodeID) {
+      if (typeof(nodeID) == "string") {
+        d3.select(nodeID).selectAll("*").remove();
+      } else if (Array.isArray(nodeID)) {
+        nodeID.forEach((x) => {
+          d3.select(x).selectAll("*").remove();
+        })
+      }
     },
 
     makeMainScatter() {
@@ -480,7 +521,7 @@ export default {
           key: "mainPlot",
           title: "",
           type: "cluster",
-          values: this.currentDataClean
+          values: _.map(this.currentDataClean, (i) => this.orgDataClean[i])
         }
       ];
 
@@ -514,8 +555,7 @@ export default {
         const brushG = d3.select("#clusterBrushG");
 
         if (brushG.empty()) {
-          const brush = d3
-            .polybrush()
+          const brush = d3.polybrush()
             .x(scatter.xScale())
             .y(scatter.yScale())
             .on("start", () => {
@@ -545,7 +585,9 @@ export default {
       const xvar = "xaxis_" + this.dimMethodSel;
       const yvar = "yaxis_" + this.dimMethodSel;
 
-      this.currentDataClean.forEach(d => {
+      this.currentDataClean.forEach(i => {
+        const d = this.orgDataClean[i];
+
         if (brush.isWithinExtent(xScale(d[xvar]), yScale(d[yvar]))) {
           dataTemp.push(d);
         }
@@ -556,7 +598,7 @@ export default {
 
     makeExpressionScatterData() {
       // TODO optimize this filtering step...set a previous state flag to avoid continously creating new objects
-      this.currentDataCleanExpression = _.map(this.selAbs, a => {
+      const currentDataCleanExpression = _.map(this.selAbs, a => {
         const d = {
           type: "expression",
           key: a,
@@ -566,7 +608,9 @@ export default {
 
         let data_ref = this.currentDataClean;
         if (this.enableThresh) {
-          const currentDataCleanFilt = _.filter(this.currentDataClean, d => {
+          const currentDataCleanFilt = _.filter(this.currentDataClean, i => {
+            const d = this.orgDataClean[i];
+
             return d[this.abs[a]] >= this.expThresh;
           });
 
@@ -576,7 +620,9 @@ export default {
         const xaxis = "xaxis_" + this.dimMethodSel;
         const yaxis = "yaxis_" + this.dimMethodSel;
 
-        d.values = _.map(data_ref, d => {
+        d.values = _.map(data_ref, i => {
+          const d = this.orgDataClean[i];
+
           const new_d = {
             barcode: d.barcode,
             ab: this.abs[a],
@@ -592,14 +638,16 @@ export default {
 
         return d;
       });
+
+      return(currentDataCleanExpression)
     },
 
-    makeExpressionScatter() {
+    makeExpressionScatter(expressionData) {
       const scatter = ScatterPlot()
         .width(275)
         .height(275)
         .radius(0.5)
-        .constrainAxes(this.currentDataClean)
+        .constrainAxes(this.orgDataClean)
         .xVar("xaxis_" + this.dimMethodSel)
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
@@ -623,7 +671,7 @@ export default {
         charts.exit().remove();
       };
 
-      draw(this.currentDataCleanExpression);
+      draw(expressionData);
     },
 
     checkPolyGateAb(prevVal, newVal) {
@@ -654,7 +702,7 @@ export default {
         .radius(1.5)
         .xVar(this.polyGateXAb[0])
         .yVar(this.polyGateYAb[0])
-        .constrainAxes(this.currentDataClean)
+        .constrainAxes(this.orgDataClean)
         .xTitle(this.polyGateXAb[0])
         .yTitle(this.polyGateYAb[0])
         .fillVar("cluster")
@@ -681,19 +729,16 @@ export default {
       draw(final_data);
     },
 
-    getRandomNFromArray(arr, n) {
-      const result = new Array(n);
-      let len = arr.length;
-      const taken = new Array(len);
-
-      if (n > len)
-        throw new RangeError("getRandom: more elements taken than available");
-      while (n--) {
-        const x = Math.floor(Math.random() * len);
-        result[n] = arr[x in taken ? taken[x] : x];
-        taken[x] = --len in taken ? taken[len] : len;
+    genRandomIndices(n, orgArrayLen) {
+      const arr = [];
+      while (arr.length < n){
+          const r = Math.floor(Math.random() * orgArrayLen);
+          if (arr.indexOf(r) === -1) {
+            arr.push(r);
+          }
       }
-      return result;
+
+      return(arr);
     }
   }
 };
@@ -709,34 +754,26 @@ export default {
   fill: none;
   stroke: #aeaeae;
 }
-
 .axis-title {
   text-anchor: middle;
   font-size: 12px;
   color: #000;
 }
-
 .chart {
   display: inline-block;
 }
-
 .chart-svg {
-    position: absolute;
+  position: absolute;
 }
-
-
 .chartexpressionScatter {
   display: inline-block;
 }
-
 circle.selected {
   fill: purple;
 }
-
 .ridgePlotExpression {
   display: inline-block;
 }
-
 div.tooltip-donut {
   position: absolute;
   text-align: center;
@@ -748,12 +785,7 @@ div.tooltip-donut {
   pointer-events: none;
   font-size: 1.3rem;
 }
-
 .centered-input input {
   text-align: center;
 }
-
-/* #mainScatter, #expressionScatter {
-  margin-bottom: 2em;
-} */
 </style>
