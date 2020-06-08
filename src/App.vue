@@ -53,6 +53,15 @@
               label="Upload TSV data file"
               @change="onFileChange"
             ></v-file-input>
+
+            <div v-show="showSpinner">
+              <v-progress-circular
+                indeterminate
+              ></v-progress-circular>
+              <p class="caption">Loading...please wait</p>
+            </div>
+
+
             <div v-show="abs.length != 0">
               <v-chip class="ma-2" color="indigo" text-color="white">
                 <v-avatar left>
@@ -247,7 +256,8 @@ export default {
     maxThresh: 2,
     cellsUsed: 0,
     dimMethods: [],
-    dimMethodSel: null
+    dimMethodSel: null,
+    showSpinner: false
   }),
   watch: {
     dataFile(d) {
@@ -343,6 +353,8 @@ export default {
       this.cellsUsed = this.currentDataClean.length;
 
       this.makeMainScatter();
+
+      this.showSpinner = false;
     },
 
     selAbs() {
@@ -452,6 +464,8 @@ export default {
   },
   methods: {
     onFileChange(e) {
+      this.showSpinner = true;
+
       const reader = new FileReader();
       reader.onload = event => {
         this.dataFile = event.target.result;
