@@ -57,6 +57,7 @@
             <div v-show="showSpinner">
               <v-progress-circular
                 indeterminate
+                :color="headerFooterColor"
               ></v-progress-circular>
               <p class="caption">Loading...please wait</p>
             </div>
@@ -67,7 +68,7 @@
                 <v-avatar left>
                   <v-icon>mdi-flask-empty</v-icon>
                 </v-avatar>
-                {{abs.length}} antibodies
+                {{abs.length}} features
               </v-chip>
 
               <v-chip class="ma-2" color="teal" text-color="white">
@@ -112,6 +113,7 @@
                 <v-select
                   outlined
                   :items="dimMethods"
+                  :disabled="dimMethods.length == 1"
                   v-model="dimMethodSel"
                   dense
                   label="Select method"
@@ -131,8 +133,8 @@
             <p class="title mb-0">Colored by cluster</p>
             <p
               class="caption"
-            >Click on graph to place anchors for gating. Double click to finish. Drag gate. | Click outside to draw new gate.</p>
-            <p class="subtitle-2">Polygonal gate details</p>
+            >To start, click on graph to place anchors for gating. Double click to finish and to allow gate dragging. <br> To reset, click outside to start drawing new gate.</p>
+            <p class="subtitle-1 mb-0">Polygonal gate details</p>
             <p
               class="caption"
             >Current polygonal gate: {{dataPolyGate.length}} cells selected of {{cellsUsed}} cells</p>
@@ -179,25 +181,35 @@
         </v-row>
 
         <v-row v-show="abs.length != 0">
-          <v-col v-show="abs.length != 0" text-center justify-center>
-            <p class="title">Colored by scaled expression level</p>
+          <v-col text-center justify-center>
+            <p class="title mb-0">Colored by scaled expression level</p>
 
-            <v-col cols="6" class="pl-0 pt-0">
-              <v-switch label="Enable threshold filter" v-model="enableThresh"></v-switch>
-              <v-slider
-                v-model="expThresh"
-                label="Threshold"
-                hint="Select antibodies on right panel. Can enable minimum threshold filter to increase app responsiveness."
-                persistent-hint
-                thumb-label="always"
-                :thumb-size="24"
-                :disabled="!enableThresh"
-                :min="minThresh"
-                :max="maxThresh"
-                step="0.1"
-                type="number"
-              ></v-slider>
-            </v-col>
+            <v-row>
+              <v-col cols="6" class="pt-0">
+                <v-switch label="Enable threshold filter" v-model="enableThresh"></v-switch>
+                <v-slider
+                  v-model="expThresh"
+                  label="Threshold"
+                  hint="Select antibodies on right panel. Can enable minimum threshold filter to increase app responsiveness."
+                  persistent-hint
+                  thumb-label="always"
+                  :thumb-size="24"
+                  :disabled="!enableThresh"
+                  :min="minThresh"
+                  :max="maxThresh"
+                  step="0.1"
+                  type="number"
+                ></v-slider>
+              </v-col>
+
+              <v-col cols="3">
+                <v-btn
+                  color="normal"
+                  :disabled="selAbs.length == 0"
+                  @click="clearAllExpScatter"
+                >Clear all expression plots</v-btn>
+              </v-col>
+            </v-row>
 
             <div id="expressionScatter"></div>
           </v-col>
@@ -489,7 +501,7 @@ export default {
       this.resetGraphs(["#mainScatter", "#polyGateScatter", "#expressionScatter"]);
       if (e) {
         this.showSpinner = true;
-        
+
         const reader = new FileReader();
         reader.onload = event => {
           this.dataFile = event.target.result;
@@ -735,6 +747,14 @@ export default {
       }
 
       return(arr);
+    },
+
+    clearAllExpScatter() {
+      if (this.selAbs.length > 0) {
+        this.selAbs = [];
+        const data = this.makeExpressionScatterData();
+        this.makeExpressionScatter(data);
+      }
     }
   }
 };

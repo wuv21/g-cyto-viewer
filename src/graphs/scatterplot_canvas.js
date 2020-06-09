@@ -154,8 +154,8 @@ export default function ScatterPlot() {
             // Update axes
             xAxis.scale(xScale);
             yAxis.scale(yScale);
-            ele.select('.axis.x').transition().duration(1000).call(xAxis);
-            ele.select('.axis.y').transition().duration(1000).call(yAxis);
+            ele.select('.axis.x').transition().duration(1000).call(xAxis.tickFormat(d3.format(".0s")));
+            ele.select('.axis.y').transition().duration(1000).call(yAxis.tickFormat(d3.format(".0s")));
 
             // Update titles
             ele.select('.axis-title.x').text(xTitle);
