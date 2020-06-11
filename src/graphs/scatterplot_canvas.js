@@ -177,7 +177,7 @@ export default function ScatterPlot() {
                     .attr('r', radius)
                     .attr("id", (d) => d.barcode),
                 update => update
-                    // .style('opacity', .8)
+                    .attr('fill', (d) => fillScale(d[fillVar]))
                     .attr('cx', (d) => xScale(d[xVar]))
                     .attr('cy', (d) => yScale(d[yVar])),
                 // exit => exit.remove()
