@@ -154,8 +154,8 @@ export default function ScatterPlot() {
             // Update axes
             xAxis.scale(xScale);
             yAxis.scale(yScale);
-            ele.select('.axis.x').transition().duration(1000).call(xAxis.tickFormat(d3.format(".0s")));
-            ele.select('.axis.y').transition().duration(1000).call(yAxis.tickFormat(d3.format(".0s")));
+            ele.select('.axis.x').transition().duration(1000).call(xAxis);
+            ele.select('.axis.y').transition().duration(1000).call(yAxis);
 
             // Update titles
             ele.select('.axis-title.x').text(xTitle);
@@ -177,7 +177,7 @@ export default function ScatterPlot() {
                     .attr('r', radius)
                     .attr("id", (d) => d.barcode),
                 update => update
-                    // .style('opacity', .8)
+                    .attr('fill', (d) => fillScale(d[fillVar]))
                     .attr('cx', (d) => xScale(d[xVar]))
                     .attr('cy', (d) => yScale(d[yVar])),
                 // exit => exit.remove()

@@ -201,13 +201,33 @@
                   type="number"
                 ></v-slider>
               </v-col>
+              
+              <v-col cols="6">
+                <v-row>
+                  <v-col cols="4" class="pb-0">
+                    <v-select
+                      outlined
+                      :items="expColorScales"
+                      v-model="expColorScaleSel"
+                      dense
+                      label="Select color scale (low - high)"
+                    ></v-select>
+                  </v-col>
 
-              <v-col cols="3">
-                <v-btn
-                  color="normal"
-                  :disabled="selAbs.length == 0"
-                  @click="clearAllExpScatter"
-                >Clear all expression plots</v-btn>
+                  <v-col cols="8" class="pb-0">
+                    <div id="expColorLegend"></div>
+                  </v-col>                              
+                </v-row>
+
+                <v-row class="mb-0">
+                  <v-col cols="6" class="pt-0">
+                    <v-btn
+                      color="normal"
+                      :disabled="selAbs.length == 0"
+                      @click="clearAllExpScatter"
+                    >Clear all expression plots</v-btn>
+                  </v-col>                    
+                </v-row>
               </v-col>
             </v-row>
 
@@ -220,7 +240,7 @@
     <v-footer app :color="headerFooterColor" class="white--text">
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.06.08</span>
+      <span>Updated 2020.06.11</span>
     </v-footer>
   </v-app>
 </template>
@@ -232,6 +252,13 @@ import * as d3 from "d3";
 import _ from "lodash";
 import ScatterPlot from "./graphs/scatterplot_canvas.js";
 import "./graphs/polybrush.js";
+
+const availInterpolators = {
+  "Spectral (Red - Blue)": d3.interpolateSpectral,
+  "Purple - Green": d3.interpolatePRGn,
+  "White - Red": d3.interpolateReds,
+  "White - Blue": d3.interpolateBlues,
+};
 
 export default {
   name: "gCytoViewer",
@@ -268,8 +295,11 @@ export default {
     cellsUsed: 0,
     dimMethods: [],
     dimMethodSel: null,
-    showSpinner: false
+    showSpinner: false,
+    expColorScales: Object.keys(availInterpolators),
+    expColorScaleSel: Object.keys(availInterpolators)[0],
   }),
+
   watch: {
     dataFile(d) {
       if (!d) {
@@ -347,7 +377,7 @@ export default {
 
         // fill scale
         this.fillScales[a] = d3
-          .scaleSequential(d3.interpolateReds)
+          .scaleSequential(availInterpolators[this.expColorScaleSel])
           .domain([minAb, maxAb]);
       });
 
@@ -364,6 +394,8 @@ export default {
       this.cellsUsed = this.currentDataClean.length;
 
       this.makeMainScatter();
+
+      this.drawColorScaleLegend();
 
       this.showSpinner = false;
     },
@@ -493,6 +525,21 @@ export default {
         this.absDisplayBool = _.map(this.abs, x => {
           return x.toLowerCase().indexOf(this.absSearch.toLowerCase()) !== -1;
         });
+      }
+    },
+
+    expColorScaleSel() {
+      Object.keys(this.fillScales).forEach(a => {
+        // fill scale
+        this.fillScales[a] = d3
+          .scaleSequential(availInterpolators[this.expColorScaleSel])
+          .domain(this.fillScales[a].domain());
+      });
+
+      this.drawColorScaleLegend();
+      if (this.selAbs.length > 0) {
+        const expressionData = this.makeExpressionScatterData();
+        this.makeExpressionScatter(expressionData);
       }
     }
   },
@@ -754,6 +801,40 @@ export default {
         this.selAbs = [];
         const data = this.makeExpressionScatterData();
         this.makeExpressionScatter(data);
+      }
+    },
+
+    drawColorScaleLegend() {
+      const canvasID = "canvas-interpolate-legend";
+      const canvasNode = document.getElementById(canvasID);
+      let canvasChart = null;
+
+      if (canvasNode === null) {
+        canvasChart = d3.select("#expColorLegend").append('canvas')
+          .style("width", "250px")
+          .style("height", "30px")
+          .style("margin-top", "3px")
+          .style("image-rendering", "pixelated")
+          .attr("id", canvasID);
+      } else {
+        canvasChart = d3.select(canvasNode);
+      }
+      const context = canvasChart.node().getContext('2d');
+
+      var scale = window.devicePixelRatio * 2;
+      canvasChart.node().width = 300 * scale;
+      canvasChart.node().height = 30 * scale;
+
+      context.scale(scale, scale);
+      context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
+      const n = 512;
+      const color = d3.scaleSequential(availInterpolators[this.expColorScaleSel]);
+      const t = color.ticks(n)
+
+      for (let i = 0; i < t.length; ++i) {
+        context.fillStyle = color(t[i]);
+        context.fillRect(250 * i/t.length, 0, 250/t.length + 1, 30);
       }
     }
   }
