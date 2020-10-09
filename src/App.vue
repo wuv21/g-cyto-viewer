@@ -42,14 +42,14 @@
         </v-list-item-content>
       </v-list-item>
 
-      <v-list dense id="cluster-list">
+      <v-list v-if="Object.keys(this.clusterCategoriesUniqVals).length != 0" dense id="cluster-list">
         <v-list-item-group v-model="selClusters" :multiple="true" color="grey darken-1">
-            <v-list-item v-for="(clust, i) in clusterCategoriesUniqVals[clusterCategoriesSel]" :key="`clust-${i}`">
+            <v-list-item v-for="(clust, i) in Object.keys(this.clusterCategoriesUniqVals[clusterCategoriesSel])" :key="`clust-${i}`">
               <v-list-item-content>
                 <v-chip
                   small
                   link
-                  ripple="false"
+                  no-ripple
                   :color="`${clusterCategoriesUniqCols[clusterCategoriesSel][i]}`">
                   <v-list-item-title v-text="clust"></v-list-item-title>
                 </v-chip>
@@ -326,7 +326,7 @@ export default {
     dimMethodSel: null,
     clusterCategories: [],
     clusterCategoriesSel: null,
-    clusterCategoriesUniqVals: [],
+    clusterCategoriesUniqVals: {},
     clusterCategoriesScales: {},
     clusterCategoriesUniqCols: {},
     showSpinner: false,
@@ -425,20 +425,27 @@ export default {
           .domain([minAb, maxAb]);
       });
 
+
       // precalculate cluster scale
-      this.clusterCategoriesUniqVals = this.clusterCategories.reduce((prev, current) => {
-        const categories = _.map(this.orgDataClean, (x) => x["cluster_" + current]);
-        prev[current] = _.uniq(categories);
+      for (const [i, d] of this.orgDataClean.entries()) {
+        for (const c of this.clusterCategories) {
+          const c_val = d["cluster_" + c];
+          if (!(c in this.clusterCategoriesUniqVals)) {
+            this.clusterCategoriesUniqVals[c] = {};
+          }
 
-        return(prev);
-      }, {});
-
-      for (const c in this.clusterCategoriesUniqVals) {
-        this.clusterCategoriesScales[c] = d3.scaleOrdinal(d3.schemePaired).domain(this.clusterCategoriesUniqVals[c]);
-        this.clusterCategoriesUniqCols[c] = _.map(this.clusterCategoriesUniqVals[c], (x) => this.clusterCategoriesScales[c](x));
+          if (c_val in this.clusterCategoriesUniqVals[c]) {
+            this.clusterCategoriesUniqVals[c][c_val].push(i);
+          } else {
+            this.clusterCategoriesUniqVals[c][c_val] = [i];
+          }
+        }
       }
 
-      console.log(this.clusterCategoriesUniqCols)
+      for (const c in this.clusterCategoriesUniqVals) {
+        this.clusterCategoriesScales[c] = d3.scaleOrdinal(d3.schemePaired).domain(Object.keys(this.clusterCategoriesUniqVals[c]));
+        this.clusterCategoriesUniqCols[c] = _.map(Object.keys(this.clusterCategoriesUniqVals[c]), (x) => this.clusterCategoriesScales[c](x));
+      }
 
       // save other settings
       this.cellsUsed = this.currentDataClean.length;
@@ -454,6 +461,14 @@ export default {
         const expressionData = this.makeExpressionScatterData();
         this.makeExpressionScatter(expressionData);
       }
+    },
+
+    selClusters() {
+      if (this.selClusters.legnth != 0) {
+        // console.log(this.currentDataClean)
+        // console.log(this.orgDataClean);
+      }
+      console.log(this.selClusters);
     },
 
     enableThresh() {
@@ -572,6 +587,9 @@ export default {
       if (this.dataPolyGate.length > 0 && this.polyGateYAb.length == 1) {
         this.makePolyGateScatter();
       }
+
+      // clear cluster selection
+      this.selClusters.length = 0
     },
 
     absSearch() {
