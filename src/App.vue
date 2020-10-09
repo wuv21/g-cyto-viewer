@@ -7,11 +7,9 @@
         </v-list-item-content>
       </v-list-item>
 
-      <v-divider></v-divider>
-
       <v-list-item>
         <v-text-field
-          class="mt-5"
+          class="mt-2"
           v-model="absSearch"
           label="Search for abs"
           v-show="abs.length != 0"
@@ -20,7 +18,7 @@
         ></v-text-field>
       </v-list-item>
 
-      <v-list dense>
+      <v-list dense id="antibody-list">
         <v-list-item-group v-model="selAbs" :multiple="true" color="indigo">
           <draggable
             v-model="abs"
@@ -33,6 +31,26 @@
               </v-list-item-content>
             </v-list-item>
           </draggable>
+        </v-list-item-group>
+      </v-list>
+
+      <v-divider></v-divider>
+
+      <v-list-item>
+        <v-list-item-content>
+          <v-list-item-title class="title">Clusters</v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+
+      <v-list dense id="cluster-list">
+        <v-list-item-group v-model="selClusters" :multiple="true" color="grey darken-1">
+            <v-list-item v-for="(clust, i) in clusterCategoriesUniqVals[clusterCategoriesSel]" :key="`clust-${i}`">
+              <v-list-item-content>
+                <v-chip :color="`${clusterCategoriesUniqCols[clusterCategoriesSel][i]}`">
+                  <v-list-item-title v-text="clust"></v-list-item-title>
+                </v-chip>
+              </v-list-item-content>
+            </v-list-item>
         </v-list-item-group>
       </v-list>
     </v-navigation-drawer>
@@ -83,7 +101,7 @@
           <v-col v-show="abs.length != 0" cols="8" text-center justify-center>
             <p class="title mb-0">Dashboard settings</p>
             <v-row>
-              <v-col cols="6">
+              <v-col cols="5">
                 <p class="subtitle-2 mb-0">Random cell filter</p>
                 <p class="caption">Recommended to de-select all antibodies first.</p>
                 <v-slider
@@ -120,10 +138,17 @@
                 ></v-select>
               </v-col>
 
-              <!-- <v-col cols="3">
-                <p class="subtitle-2">Cluster color (beta)</p>
-                <v-select outlined disabled dense label="Select coloring"></v-select>
-              </v-col> -->
+              <v-col cols="4">
+                <p class="subtitle-2">Cluster category</p>
+                <v-select
+                  outlined
+                  :items="clusterCategories"
+                  :disabled="clusterCategories.length == 1"
+                  v-model="clusterCategoriesSel"
+                  dense
+                  label="Select category"
+                ></v-select>
+              </v-col>
             </v-row>
           </v-col>
         </v-row>
@@ -274,6 +299,7 @@ export default {
     header: [],
     abs: [],
     selAbs: [],
+    selClusters: [],
     absSearch: null,
     absDisplayBool: [],
     dataCite: [],
@@ -286,7 +312,6 @@ export default {
     mainScatterXScale: null,
     mainScatterYScale: null,
     fillScales: [],
-    clusterScale: null,
     absDensities: [],
     enableThresh: false,
     expThresh: 0,
@@ -295,6 +320,11 @@ export default {
     cellsUsed: 0,
     dimMethods: [],
     dimMethodSel: null,
+    clusterCategories: [],
+    clusterCategoriesSel: null,
+    clusterCategoriesUniqVals: [],
+    clusterCategoriesScales: {},
+    clusterCategoriesUniqCols: {},
     showSpinner: false,
     expColorScales: Object.keys(availInterpolators),
     expColorScaleSel: Object.keys(availInterpolators)[0],
@@ -342,10 +372,12 @@ export default {
       });
 
       // get abs
+      // TODO have to modify here too for cluster options...
       const metaInfoTags = ["barcode", "cluster", "tSNE_1", "tSNE_2"];
       const axisCols = _.filter(this.header, i => /^(xaxis|yaxis)/.test(i));
+      const clusterCols = _.filter(this.header, i => /^(cluster_)/.test(i));
 
-      this.abs = _.without(this.header, ...metaInfoTags.concat(axisCols));
+      this.abs = _.without(this.header, ...metaInfoTags.concat(axisCols, clusterCols));
       this.absDisplayBool = Array(this.abs.length).fill(true);
 
       // find available dim methods
@@ -356,6 +388,14 @@ export default {
 
       // set default dimMethod
       this.dimMethodSel = this.dimMethods[0];
+
+      // save available cluster categories
+      this.clusterCategories = _.chain(clusterCols)
+        .map(x => x.replace(/^cluster_/, ""))
+        .uniq()
+        .value();
+
+      this.clusterCategoriesSel = this.clusterCategories[0];
 
       // reformat to d3 friendly
       const dataCiteKeys = Object.keys(this.dataCite);
@@ -368,7 +408,7 @@ export default {
       }
 
       // set default to full dataset
-      this.currentDataClean = [...Array(this.orgDataClean.length).keys() ].map(i => i);
+      this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
 
       // precalculate d3 scales
       this.abs.forEach(a => {
@@ -382,17 +422,22 @@ export default {
       });
 
       // precalculate cluster scale
-      const uniq_clusts = _.uniq(
-        _.map(this.currentDataClean, i => {
-          return this.orgDataClean[i].cluster;
-        })
-      );
+      this.clusterCategoriesUniqVals = this.clusterCategories.reduce((prev, current) => {
+        const categories = _.map(this.orgDataClean, (x) => x["cluster_" + current]);
+        prev[current] = _.uniq(categories);
 
-      this.clusterScale = d3.scaleOrdinal(d3.schemePaired).domain(uniq_clusts);
+        return(prev);
+      }, {});
+
+      for (const c in this.clusterCategoriesUniqVals) {
+        this.clusterCategoriesScales[c] = d3.scaleOrdinal(d3.schemePaired).domain(this.clusterCategoriesUniqVals[c]);
+        this.clusterCategoriesUniqCols[c] = _.map(this.clusterCategoriesUniqVals[c], (x) => this.clusterCategoriesScales[c](x));
+      }
+
+      console.log(this.clusterCategoriesUniqCols)
 
       // save other settings
       this.cellsUsed = this.currentDataClean.length;
-
       this.makeMainScatter();
 
       this.drawColorScaleLegend();
@@ -514,6 +559,17 @@ export default {
       }
     },
 
+    clusterCategoriesSel() {
+      if (this.orgDataClean.length == 0) {
+        return;
+      }
+
+      this.makeMainScatter();
+      if (this.dataPolyGate.length > 0 && this.polyGateYAb.length == 1) {
+        this.makePolyGateScatter();
+      }
+    },
+
     absSearch() {
       if (this.orgDataClean.length == 0) {
         return;
@@ -588,8 +644,8 @@ export default {
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
         .yTitle(this.dimMethodSel + " 2")
-        .fillVar("cluster")
-        .fillScale(this.clusterScale)
+        .fillVar("cluster_" + this.clusterCategoriesSel)
+        .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel])
         .legend(true);
 
       const draw = () => {
@@ -760,8 +816,8 @@ export default {
         .constrainAxes(this.orgDataClean)
         .xTitle(this.polyGateXAb[0])
         .yTitle(this.polyGateYAb[0])
-        .fillVar("cluster")
-        .fillScale(this.clusterScale);
+        .fillVar("cluster_" + this.clusterCategoriesSel)
+        .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel]);
 
       const draw = function(data) {
         const charts = d3
@@ -884,5 +940,15 @@ div.tooltip-donut {
 }
 .centered-input input {
   text-align: center;
+}
+
+#antibody-list {
+  max-height: 45%;
+  overflow-y: auto;
+}
+
+#cluster-list {
+  max-height: 35%;
+  overflow-y: auto;
 }
 </style>
