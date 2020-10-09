@@ -46,7 +46,11 @@
         <v-list-item-group v-model="selClusters" :multiple="true" color="grey darken-1">
             <v-list-item v-for="(clust, i) in clusterCategoriesUniqVals[clusterCategoriesSel]" :key="`clust-${i}`">
               <v-list-item-content>
-                <v-chip :color="`${clusterCategoriesUniqCols[clusterCategoriesSel][i]}`">
+                <v-chip
+                  small
+                  link
+                  ripple="false"
+                  :color="`${clusterCategoriesUniqCols[clusterCategoriesSel][i]}`">
                   <v-list-item-title v-text="clust"></v-list-item-title>
                 </v-chip>
               </v-list-item-content>
