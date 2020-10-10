@@ -42,14 +42,19 @@
         </v-list-item-content>
       </v-list-item>
 
-      <v-list v-if="Object.keys(this.clusterCategoriesUniqVals).length != 0" dense id="cluster-list">
-        <v-list-item-group v-model="selClusters" :multiple="true" color="grey darken-1">
-            <v-list-item v-for="(clust, i) in Object.keys(this.clusterCategoriesUniqVals[clusterCategoriesSel])" :key="`clust-${i}`">
+      <v-list dense id="cluster-list">
+        <v-list-item-group
+          v-model="selClusterTrack" :multiple="true" color="red darken-2" @change="updateCells">
+            <v-list-item
+              v-for="(clust, i) in clusterCategoriesCurrentVals"
+              :key="`clust-${i}`"
+              :value="i"
+            >
               <v-list-item-content>
                 <v-chip
                   small
                   link
-                  no-ripple
+                  :ripple="false"
                   :color="`${clusterCategoriesUniqCols[clusterCategoriesSel][i]}`">
                   <v-list-item-title v-text="clust"></v-list-item-title>
                 </v-chip>
@@ -111,6 +116,7 @@
                 <v-slider
                   v-model="cellsUsed"
                   class="align-center"
+                  @change="updateCells"
                   :max="orgDataClean.length"
                   min="0"
                   hide-details
@@ -165,8 +171,11 @@
             >To start, click on graph to place anchors for gating. Double click to finish and to allow gate dragging. <br> To reset, click outside to start drawing new gate.</p>
             <p class="subtitle-1 mb-0">Polygonal gate details</p>
             <p
-              class="caption"
-            >Current polygonal gate: {{dataPolyGate.length}} cells selected of {{cellsUsed}} cells</p>
+              class="caption mb-0"
+            >Current polygonal gate: {{dataPolyGate.length}} cells selected of {{currentDataClean.length}} cells shown on graph</p>
+            <p
+              class="caption mt-0 pt-0"
+            >{{cellsUsed - currentDataClean.length}} cells are not shown based on current cluster selection</p>
             <div id="mainScatter"></div>
           </v-col>
 
@@ -303,7 +312,7 @@ export default {
     header: [],
     abs: [],
     selAbs: [],
-    selClusters: [],
+    selClusterTrack: [],
     absSearch: null,
     absDisplayBool: [],
     dataCite: [],
@@ -329,6 +338,7 @@ export default {
     clusterCategoriesUniqVals: {},
     clusterCategoriesScales: {},
     clusterCategoriesUniqCols: {},
+    clusterCategoriesCurrentVals: [],
     showSpinner: false,
     expColorScales: Object.keys(availInterpolators),
     expColorScaleSel: Object.keys(availInterpolators)[0],
@@ -449,6 +459,11 @@ export default {
 
       // save other settings
       this.cellsUsed = this.currentDataClean.length;
+
+      // figure out why this selClusters isn't being set...
+      this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel])
+      this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
+
       this.makeMainScatter();
 
       this.drawColorScaleLegend();
@@ -463,14 +478,6 @@ export default {
       }
     },
 
-    selClusters() {
-      if (this.selClusters.legnth != 0) {
-        // console.log(this.currentDataClean)
-        // console.log(this.orgDataClean);
-      }
-      console.log(this.selClusters);
-    },
-
     enableThresh() {
       if (this.selAbs.length != 0) {
         const expressionData = this.makeExpressionScatterData();
@@ -482,37 +489,6 @@ export default {
       if (this.selAbs.length != 0) {
         const expressionData = this.makeExpressionScatterData();
         this.makeExpressionScatter(expressionData);
-      }
-    },
-
-    cellsUsed(newVal, prevVal) {
-      if (this.orgDataClean.length == 0) {
-        return;
-      }
-
-      if (newVal != prevVal) {
-        if (this.cellsUsed == this.orgDataClean.length) {
-          this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
-        } else {
-          this.currentDataClean = this.genRandomIndices(this.cellsUsed, this.orgDataClean.length);
-        }
-
-        this.makeMainScatter();
-
-        const expressionData = this.makeExpressionScatterData();
-        this.makeExpressionScatter(expressionData);
-
-        if (this.dataPolyGate.length > 0) {
-          this.updatePolyGate(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
-        }
-      }
-
-      if (
-        this.dataPolyGate.length > 0 &&
-        this.polyGateXAb.length == 1 &&
-        this.polyGateYAb.length == 1
-      ) {
-        this.updatePolyGate(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
       }
     },
 
@@ -583,13 +559,12 @@ export default {
         return;
       }
 
-      this.makeMainScatter();
-      if (this.dataPolyGate.length > 0 && this.polyGateYAb.length == 1) {
-        this.makePolyGateScatter();
-      }
-
       // clear cluster selection
-      this.selClusters.length = 0
+      // THIS IS WHY MY CODE KEEPS FAILING......
+      this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]);
+      this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
+
+      this.updateCells();
     },
 
     absSearch() {
@@ -666,6 +641,7 @@ export default {
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
         .yTitle(this.dimMethodSel + " 2")
+        .constrainAxes(this.orgDataClean)
         .fillVar("cluster_" + this.clusterCategoriesSel)
         .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel])
         .legend(true);
@@ -862,6 +838,39 @@ export default {
       draw(final_data);
     },
 
+    updateCells() {
+      if (this.cellsUsed == this.orgDataClean.length) {
+        this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
+      } else {
+        this.currentDataClean = this.genRandomIndices(this.cellsUsed, this.orgDataClean.length);
+      }
+
+      // TODO fix for cluster values that are not 0...
+      if (this.selClusterTrack.length != 0) {
+        const allowedCells = this.selClusterTrack.reduce((prev, current) => {
+          const clusterValue = this.clusterCategoriesCurrentVals[current]
+          prev = prev.concat(this.clusterCategoriesUniqVals[this.clusterCategoriesSel][clusterValue])
+          return(prev)
+        }, []);
+
+        console.log(allowedCells);
+        this.currentDataClean = this.currentDataClean.filter(x => allowedCells.includes(x))
+      }
+
+      this.makeMainScatter();
+
+      const expressionData = this.makeExpressionScatterData();
+      this.makeExpressionScatter(expressionData);
+
+      if (
+        this.dataPolyGate.length > 0 &&
+        this.polyGateXAb.length == 1 &&
+        this.polyGateYAb.length == 1
+      ) {
+        this.updatePolyGate(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
+      }
+    },
+
     genRandomIndices(n, orgArrayLen) {
       const arr = [];
       while (arr.length < n){
@@ -915,7 +924,8 @@ export default {
         context.fillRect(250 * i/t.length, 0, 250/t.length + 1, 30);
       }
     }
-  }
+  },
+  
 };
 </script>
 
