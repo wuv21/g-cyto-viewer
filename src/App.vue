@@ -156,6 +156,7 @@
                   :items="clusterCategories"
                   :disabled="clusterCategories.length == 1"
                   v-model="clusterCategoriesSel"
+                  @input="updateClusterAndCells"
                   dense
                   label="Select category"
                 ></v-select>
@@ -528,18 +529,6 @@ export default {
       }
     },
 
-    clusterCategoriesSel() {
-      if (this.orgDataClean.length == 0) {
-        return;
-      }
-
-      // set default to all available values (i.e. all points selected)
-      this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]);
-      this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
-
-      this.updateCells();
-    },
-
     absSearch() {
       if (this.orgDataClean.length == 0) {
         return;
@@ -811,7 +800,12 @@ export default {
       draw(final_data);
     },
 
-    updateCells(event, { updatePolyGate = false } = {}) {
+    updateCells(event, { updatePolyGate = false, updateCluster = false } = {}) {
+      if (updateCluster) {
+        this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]);
+        this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
+      }
+
       if (this.cellsUsed == this.orgDataClean.length) {
         this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
       } else {
@@ -857,6 +851,10 @@ export default {
 
     updateDimsAndCells(e) {
       this.updateCells(e, {updatePolyGate: true});
+    },
+
+    updateClusterAndCells(e) {
+      this.updateCells(e, {updateCluster: true});
     },
 
     genRandomIndices(n, orgArrayLen) {
