@@ -70,7 +70,7 @@
       <v-app-bar-nav-icon @click.stop="drawerRight = !drawerRight" />
     </v-app-bar>
 
-    <v-content>
+    <v-main>
       <v-container fluid>
         <v-row>
           <v-col cols="4">
@@ -116,7 +116,7 @@
                 <v-slider
                   v-model="cellsUsed"
                   class="align-center"
-                  @change="updateCells"
+                  @input="updateCells"
                   :max="orgDataClean.length"
                   min="0"
                   hide-details
@@ -143,6 +143,7 @@
                   :items="dimMethods"
                   :disabled="dimMethods.length == 1"
                   v-model="dimMethodSel"
+                  @input="updateDimsAndCells"
                   dense
                   label="Select method"
                 ></v-select>
@@ -273,12 +274,12 @@
           </v-col>
         </v-row>
       </v-container>
-    </v-content>
+    </v-main>
 
     <v-footer app :color="headerFooterColor" class="white--text">
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.06.11</span>
+      <span>Updated 2020.10.10</span>
     </v-footer>
   </v-app>
 </template>
@@ -386,7 +387,6 @@ export default {
       });
 
       // get abs
-      // TODO have to modify here too for cluster options...
       const metaInfoTags = ["barcode", "cluster", "tSNE_1", "tSNE_2"];
       const axisCols = _.filter(this.header, i => /^(xaxis|yaxis)/.test(i));
       const clusterCols = _.filter(this.header, i => /^(cluster_)/.test(i));
@@ -460,7 +460,6 @@ export default {
       // save other settings
       this.cellsUsed = this.currentDataClean.length;
 
-      // figure out why this selClusters isn't being set...
       this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel])
       this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
 
@@ -529,38 +528,12 @@ export default {
       }
     },
 
-    dimMethodSel() {
-      if (this.orgDataClean.length == 0) {
-        return;
-      }
-
-      if (this.polyGateBrush) {
-        if (this.dataPolyGate.length > 0) {
-          this.dataPolyGate = [];
-          d3.select(".polyGateScatter").remove();
-        }
-
-        d3.select("#clusterBrushG").remove();
-        d3.select("#mainScatter")
-          .selectAll("circle")
-          .classed("selected", false);
-      }
-
-      this.makeMainScatter();
-
-      if (this.selAbs.length > 0) {
-        const expressionData = this.makeExpressionScatterData();
-        this.makeExpressionScatter(expressionData);
-      }
-    },
-
     clusterCategoriesSel() {
       if (this.orgDataClean.length == 0) {
         return;
       }
 
-      // clear cluster selection
-      // THIS IS WHY MY CODE KEEPS FAILING......
+      // set default to all available values (i.e. all points selected)
       this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]);
       this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
 
@@ -838,14 +811,13 @@ export default {
       draw(final_data);
     },
 
-    updateCells() {
+    updateCells(event, { updatePolyGate = false } = {}) {
       if (this.cellsUsed == this.orgDataClean.length) {
         this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
       } else {
         this.currentDataClean = this.genRandomIndices(this.cellsUsed, this.orgDataClean.length);
       }
 
-      // TODO fix for cluster values that are not 0...
       if (this.selClusterTrack.length != 0) {
         const allowedCells = this.selClusterTrack.reduce((prev, current) => {
           const clusterValue = this.clusterCategoriesCurrentVals[current]
@@ -853,10 +825,22 @@ export default {
           return(prev)
         }, []);
 
-        console.log(allowedCells);
         this.currentDataClean = this.currentDataClean.filter(x => allowedCells.includes(x))
       }
 
+
+      if (updatePolyGate && this.dataPolyGate.length > 0) {
+        this.dataPolyGate = [];
+        d3.select(".polyGateScatter").remove();
+
+        // d3.select("#clusterBrushG").select("path").attr("d", null);
+        d3.select("#clusterBrushG").remove();
+
+        d3.select("#mainScatter")
+          .selectAll("circle")
+          .classed("selected", false);
+      } 
+      
       this.makeMainScatter();
 
       const expressionData = this.makeExpressionScatterData();
@@ -869,6 +853,10 @@ export default {
       ) {
         this.updatePolyGate(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
       }
+    },
+
+    updateDimsAndCells(e) {
+      this.updateCells(e, {updatePolyGate: true});
     },
 
     genRandomIndices(n, orgArrayLen) {
