@@ -43,7 +43,7 @@ export default function ScatterPlot() {
         const chartWidth = width - margin.left - margin.right;
 
         // Iterate through selections, in case there are multiple
-        selection.each(function (data) {
+        selection.each(function(data) {
             // set up title
             title = data.title;
 
@@ -96,33 +96,39 @@ export default function ScatterPlot() {
 
             // Add legend if settings are enabled for this
             // Legend derived from http://bl.ocks.org/weiglemc/6185069
-            if (legend && fillScale != "") {
-                const legend = svgEnter.append('g')
-                    .attr('transform', 'translate(' + (width - margin.right - 30) + ',' + margin.top + ')')
-                    .attr('class', 'legend');
+            // TODO legend not updating correctly
+            // if (legend && fillScale != "") {
+            //     svgEnter.append('g')
+            //         .attr('transform', 'translate(' + (width - margin.right - 30) + ',' + margin.top + ')')
+            //         .attr('class', 'legend');
 
-                const legendInd = legend.selectAll('.legend-g')
-                    .data(fillScale.domain().sort())
-                    .enter()
-                    .append("g")
-                    .attr('class', 'legend-g')
-                    .attr("transform", (d, i) => "translate(0," + i * 20 + ")");
+            //     ele.select('.legend').selectAll('.legend-g')
+            //         .data(fillScale.domain().sort(), (d) => fillVar + d)
+            //         .join(
+            //             enter => {
+            //                 console.log(enter);
+            //                 enter = enter.append("g")
+            //                 .attr('class', 'legend-g')
+            //                 .attr("transform", (d, i) => "translate(0," + i * 20 + ")")
+                            
+            //                 enter.append("rect")
+            //                 .attr("x", 5)
+            //                 .attr("width", 12)
+            //                 .attr("height", 12)
+            //                 .style("fill", fillScale);
 
-                legendInd.append("rect")
-                    .attr("x", 5)
-                    .attr("width", 12)
-                    .attr("height", 12)
-                    .style("fill", fillScale);
-              
-                legendInd.append("text")
-                    .attr("x", 25)
-                    .attr("y", 6)
-                    .attr("dy", ".35em")
-                    .style("text-anchor", "start")
-                    .style("font-size", 12)
-                    .text((d) => d)
-
-            }
+            //                 enter.append("text")
+            //                     .attr("x", 25)
+            //                     .attr("y", 6)
+            //                     .attr("dy", ".35em")
+            //                     .style("text-anchor", "start")
+            //                     .style("font-size", 12)
+            //                     .text((d) => d)
+                            
+            //                 return(enter)
+            //             },
+            //             exit => exit.remove());
+            // }
 
             // Define xAxis and yAxis functions
             const xAxis = d3.axisBottom();
@@ -180,7 +186,7 @@ export default function ScatterPlot() {
                     .attr('fill', (d) => fillScale(d[fillVar]))
                     .attr('cx', (d) => xScale(d[xVar]))
                     .attr('cy', (d) => yScale(d[yVar])),
-                // exit => exit.remove()
+                exit => exit.remove()
             );
             
             const canvasID = "canvas-" + data.key;
@@ -204,11 +210,6 @@ export default function ScatterPlot() {
             const context = canvasChart.node().getContext('2d');
 
             function drawCanvas() {
-                // clear canvas
-                // context.fillStyle = "#FFFFFF00";
-                // context.rect(0,0,canvasChart.attr("width"),canvasChart.attr("height"));
-                // context.fill();
-
                 context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
                 dataBinding.each(function() {

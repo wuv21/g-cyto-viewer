@@ -7,11 +7,9 @@
         </v-list-item-content>
       </v-list-item>
 
-      <v-divider></v-divider>
-
       <v-list-item>
         <v-text-field
-          class="mt-5"
+          class="mt-2"
           v-model="absSearch"
           label="Search for abs"
           v-show="abs.length != 0"
@@ -20,7 +18,7 @@
         ></v-text-field>
       </v-list-item>
 
-      <v-list dense>
+      <v-list dense id="antibody-list">
         <v-list-item-group v-model="selAbs" :multiple="true" color="indigo">
           <draggable
             v-model="abs"
@@ -35,6 +33,36 @@
           </draggable>
         </v-list-item-group>
       </v-list>
+
+      <v-divider></v-divider>
+
+      <v-list-item>
+        <v-list-item-content>
+          <v-list-item-title class="title">Clusters</v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+
+      <v-list dense id="cluster-list">
+        <v-list-item-group
+          v-model="selClusterTrack" :multiple="true" color="red darken-2" @change="updateCells">
+            <v-list-item
+              v-for="(clust, i) in clusterCategoriesCurrentVals"
+              :key="`clust-${i}`"
+              :value="i"
+            >
+              <v-list-item-icon class="mr-3">
+                <v-icon
+                  :color="`${clusterCategoriesUniqCols[clusterCategoriesSel][i]}`"
+                >mdi-checkbox-blank-circle</v-icon>
+              </v-list-item-icon>
+
+              <v-list-item-content>
+
+                <v-list-item-title v-text="clust"></v-list-item-title>
+              </v-list-item-content>
+            </v-list-item>
+        </v-list-item-group>
+      </v-list>
     </v-navigation-drawer>
 
     <v-app-bar app clipped-right :color="headerFooterColor" dark>
@@ -43,7 +71,7 @@
       <v-app-bar-nav-icon @click.stop="drawerRight = !drawerRight" />
     </v-app-bar>
 
-    <v-content>
+    <v-main>
       <v-container fluid>
         <v-row>
           <v-col cols="4">
@@ -52,6 +80,7 @@
               accept=".tsv"
               label="Upload TSV data file"
               @change="onFileChange"
+              truncate-length="30"
             ></v-file-input>
 
             <div v-show="showSpinner">
@@ -83,12 +112,13 @@
           <v-col v-show="abs.length != 0" cols="8" text-center justify-center>
             <p class="title mb-0">Dashboard settings</p>
             <v-row>
-              <v-col cols="6">
+              <v-col cols="5">
                 <p class="subtitle-2 mb-0">Random cell filter</p>
                 <p class="caption">Recommended to de-select all antibodies first.</p>
                 <v-slider
                   v-model="cellsUsed"
                   class="align-center"
+                  @input="updateCells"
                   :max="orgDataClean.length"
                   min="0"
                   hide-details
@@ -115,15 +145,24 @@
                   :items="dimMethods"
                   :disabled="dimMethods.length == 1"
                   v-model="dimMethodSel"
+                  @input="updateDimsAndCells"
                   dense
                   label="Select method"
                 ></v-select>
               </v-col>
 
-              <!-- <v-col cols="3">
-                <p class="subtitle-2">Cluster color (beta)</p>
-                <v-select outlined disabled dense label="Select coloring"></v-select>
-              </v-col> -->
+              <v-col cols="4">
+                <p class="subtitle-2">Cluster category</p>
+                <v-select
+                  outlined
+                  :items="clusterCategories"
+                  :disabled="clusterCategories.length == 1"
+                  v-model="clusterCategoriesSel"
+                  @input="updateClusterAndCells"
+                  dense
+                  label="Select category"
+                ></v-select>
+              </v-col>
             </v-row>
           </v-col>
         </v-row>
@@ -136,8 +175,11 @@
             >To start, click on graph to place anchors for gating. Double click to finish and to allow gate dragging. <br> To reset, click outside to start drawing new gate.</p>
             <p class="subtitle-1 mb-0">Polygonal gate details</p>
             <p
-              class="caption"
-            >Current polygonal gate: {{dataPolyGate.length}} cells selected of {{cellsUsed}} cells</p>
+              class="caption mb-0"
+            >Current polygonal gate: {{dataPolyGate.length}} cells selected of {{currentDataClean.length}} cells shown on graph</p>
+            <p
+              class="caption mt-0 pt-0"
+            >{{cellsUsed - currentDataClean.length}} cells are not shown based on current cluster selection</p>
             <div id="mainScatter"></div>
           </v-col>
 
@@ -235,12 +277,12 @@
           </v-col>
         </v-row>
       </v-container>
-    </v-content>
+    </v-main>
 
     <v-footer app :color="headerFooterColor" class="white--text">
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.06.11</span>
+      <span>Updated 2020.10.11</span>
     </v-footer>
   </v-app>
 </template>
@@ -274,6 +316,7 @@ export default {
     header: [],
     abs: [],
     selAbs: [],
+    selClusterTrack: [],
     absSearch: null,
     absDisplayBool: [],
     dataCite: [],
@@ -286,7 +329,6 @@ export default {
     mainScatterXScale: null,
     mainScatterYScale: null,
     fillScales: [],
-    clusterScale: null,
     absDensities: [],
     enableThresh: false,
     expThresh: 0,
@@ -295,6 +337,12 @@ export default {
     cellsUsed: 0,
     dimMethods: [],
     dimMethodSel: null,
+    clusterCategories: [],
+    clusterCategoriesSel: null,
+    clusterCategoriesUniqVals: {},
+    clusterCategoriesScales: {},
+    clusterCategoriesUniqCols: {},
+    clusterCategoriesCurrentVals: [],
     showSpinner: false,
     expColorScales: Object.keys(availInterpolators),
     expColorScaleSel: Object.keys(availInterpolators)[0],
@@ -344,8 +392,9 @@ export default {
       // get abs
       const metaInfoTags = ["barcode", "cluster", "tSNE_1", "tSNE_2"];
       const axisCols = _.filter(this.header, i => /^(xaxis|yaxis)/.test(i));
+      const clusterCols = _.filter(this.header, i => /^(cluster_)/.test(i));
 
-      this.abs = _.without(this.header, ...metaInfoTags.concat(axisCols));
+      this.abs = _.without(this.header, ...metaInfoTags.concat(axisCols, clusterCols));
       this.absDisplayBool = Array(this.abs.length).fill(true);
 
       // find available dim methods
@@ -356,6 +405,14 @@ export default {
 
       // set default dimMethod
       this.dimMethodSel = this.dimMethods[0];
+
+      // save available cluster categories
+      this.clusterCategories = _.chain(clusterCols)
+        .map(x => x.replace(/^cluster_/, ""))
+        .uniq()
+        .value();
+
+      this.clusterCategoriesSel = this.clusterCategories[0];
 
       // reformat to d3 friendly
       const dataCiteKeys = Object.keys(this.dataCite);
@@ -368,7 +425,7 @@ export default {
       }
 
       // set default to full dataset
-      this.currentDataClean = [...Array(this.orgDataClean.length).keys() ].map(i => i);
+      this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
 
       // precalculate d3 scales
       this.abs.forEach(a => {
@@ -381,17 +438,33 @@ export default {
           .domain([minAb, maxAb]);
       });
 
-      // precalculate cluster scale
-      const uniq_clusts = _.uniq(
-        _.map(this.currentDataClean, i => {
-          return this.orgDataClean[i].cluster;
-        })
-      );
 
-      this.clusterScale = d3.scaleOrdinal(d3.schemePaired).domain(uniq_clusts);
+      // precalculate cluster scale
+      for (const [i, d] of this.orgDataClean.entries()) {
+        for (const c of this.clusterCategories) {
+          const c_val = d["cluster_" + c];
+          if (!(c in this.clusterCategoriesUniqVals)) {
+            this.clusterCategoriesUniqVals[c] = {};
+          }
+
+          if (c_val in this.clusterCategoriesUniqVals[c]) {
+            this.clusterCategoriesUniqVals[c][c_val].push(i);
+          } else {
+            this.clusterCategoriesUniqVals[c][c_val] = [i];
+          }
+        }
+      }
+
+      for (const c in this.clusterCategoriesUniqVals) {
+        this.clusterCategoriesScales[c] = d3.scaleOrdinal(d3.schemePaired).domain(Object.keys(this.clusterCategoriesUniqVals[c]));
+        this.clusterCategoriesUniqCols[c] = _.map(Object.keys(this.clusterCategoriesUniqVals[c]), (x) => this.clusterCategoriesScales[c](x));
+      }
 
       // save other settings
       this.cellsUsed = this.currentDataClean.length;
+
+      this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel])
+      this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
 
       this.makeMainScatter();
 
@@ -418,37 +491,6 @@ export default {
       if (this.selAbs.length != 0) {
         const expressionData = this.makeExpressionScatterData();
         this.makeExpressionScatter(expressionData);
-      }
-    },
-
-    cellsUsed(newVal, prevVal) {
-      if (this.orgDataClean.length == 0) {
-        return;
-      }
-
-      if (newVal != prevVal) {
-        if (this.cellsUsed == this.orgDataClean.length) {
-          this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
-        } else {
-          this.currentDataClean = this.genRandomIndices(this.cellsUsed, this.orgDataClean.length);
-        }
-
-        this.makeMainScatter();
-
-        const expressionData = this.makeExpressionScatterData();
-        this.makeExpressionScatter(expressionData);
-
-        if (this.dataPolyGate.length > 0) {
-          this.updatePolyGate(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
-        }
-      }
-
-      if (
-        this.dataPolyGate.length > 0 &&
-        this.polyGateXAb.length == 1 &&
-        this.polyGateYAb.length == 1
-      ) {
-        this.updatePolyGate(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
       }
     },
 
@@ -486,31 +528,6 @@ export default {
 
       if (this.dataPolyGate.length > 0 && this.polyGateXAb.length == 1) {
         this.makePolyGateScatter();
-      }
-    },
-
-    dimMethodSel() {
-      if (this.orgDataClean.length == 0) {
-        return;
-      }
-
-      if (this.polyGateBrush) {
-        if (this.dataPolyGate.length > 0) {
-          this.dataPolyGate = [];
-          d3.select(".polyGateScatter").remove();
-        }
-
-        d3.select("#clusterBrushG").remove();
-        d3.select("#mainScatter")
-          .selectAll("circle")
-          .classed("selected", false);
-      }
-
-      this.makeMainScatter();
-
-      if (this.selAbs.length > 0) {
-        const expressionData = this.makeExpressionScatterData();
-        this.makeExpressionScatter(expressionData);
       }
     },
 
@@ -581,16 +598,17 @@ export default {
       ];
 
       const scatter = ScatterPlot()
-        // .width(600)...since using legend, will auto calculate width
+        .width(500)
         .height(500)
         .radius(1)
         .xVar("xaxis_" + this.dimMethodSel)
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
         .yTitle(this.dimMethodSel + " 2")
-        .fillVar("cluster")
-        .fillScale(this.clusterScale)
-        .legend(true);
+        .constrainAxes(this.orgDataClean)
+        .fillVar("cluster_" + this.clusterCategoriesSel)
+        .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel]);
+        // .legend(true);
 
       const draw = () => {
         const charts = d3
@@ -652,7 +670,6 @@ export default {
     },
 
     makeExpressionScatterData() {
-      // TODO optimize this filtering step...set a previous state flag to avoid continously creating new objects
       const currentDataCleanExpression = _.map(this.selAbs, a => {
         const d = {
           type: "expression",
@@ -760,8 +777,8 @@ export default {
         .constrainAxes(this.orgDataClean)
         .xTitle(this.polyGateXAb[0])
         .yTitle(this.polyGateYAb[0])
-        .fillVar("cluster")
-        .fillScale(this.clusterScale);
+        .fillVar("cluster_" + this.clusterCategoriesSel)
+        .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel]);
 
       const draw = function(data) {
         const charts = d3
@@ -782,6 +799,61 @@ export default {
       };
 
       draw(final_data);
+    },
+
+    updateCells(event, { updatePolyGate = false, updateCluster = false } = {}) {
+      if (updateCluster) {
+        this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]);
+        this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
+      }
+
+      if (this.cellsUsed == this.orgDataClean.length) {
+        this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
+      } else {
+        this.currentDataClean = this.genRandomIndices(this.cellsUsed, this.orgDataClean.length);
+      }
+
+      if (this.selClusterTrack.length != 0) {
+        const allowedCells = this.selClusterTrack.reduce((prev, current) => {
+          const clusterValue = this.clusterCategoriesCurrentVals[current]
+          prev = prev.concat(this.clusterCategoriesUniqVals[this.clusterCategoriesSel][clusterValue])
+          return(prev)
+        }, []);
+
+        this.currentDataClean = this.currentDataClean.filter(x => allowedCells.includes(x))
+      }
+
+
+      if (updatePolyGate && this.dataPolyGate.length > 0) {
+        this.dataPolyGate = [];
+        d3.select(".polyGateScatter").remove();
+        d3.select("#clusterBrushG").remove();
+
+        d3.select("#mainScatter")
+          .selectAll("circle")
+          .classed("selected", false);
+      } 
+      
+      this.makeMainScatter();
+
+      const expressionData = this.makeExpressionScatterData();
+      this.makeExpressionScatter(expressionData);
+
+      if (
+        this.dataPolyGate.length > 0 &&
+        this.polyGateXAb.length == 1 &&
+        this.polyGateYAb.length == 1
+      ) {
+        this.updatePolyGate(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
+      }
+    },
+
+    updateDimsAndCells(e) {
+      this.updateCells(e, {updatePolyGate: true});
+    },
+
+    updateClusterAndCells(e) {
+      this.updateCells(e, {updateCluster: true});
     },
 
     genRandomIndices(n, orgArrayLen) {
@@ -837,7 +909,7 @@ export default {
         context.fillRect(250 * i/t.length, 0, 250/t.length + 1, 30);
       }
     }
-  }
+  },
 };
 </script>
 
@@ -884,5 +956,16 @@ div.tooltip-donut {
 }
 .centered-input input {
   text-align: center;
+}
+#antibody-list {
+  max-height: 50%;
+  overflow-y: auto;
+}
+#cluster-list {
+  max-height: 35%;
+  overflow-y: auto;
+}
+.v-file-input__text {
+  font-size: 14px;
 }
 </style>

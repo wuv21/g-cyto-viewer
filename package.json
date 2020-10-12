@@ -14,7 +14,7 @@
     "lodash": "^4.17.15",
     "vue": "^2.6.11",
     "vuedraggable": "^2.23.2",
-    "vuetify": "^2.2.11"
+    "vuetify": "^2.3.13"
   },
   "devDependencies": {
     "@mdi/font": "^5.0.45",
