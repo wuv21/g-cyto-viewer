@@ -50,14 +50,15 @@
               :key="`clust-${i}`"
               :value="i"
             >
+              <v-list-item-icon class="mr-3">
+                <v-icon
+                  :color="`${clusterCategoriesUniqCols[clusterCategoriesSel][i]}`"
+                >mdi-checkbox-blank-circle</v-icon>
+              </v-list-item-icon>
+
               <v-list-item-content>
-                <v-chip
-                  small
-                  link
-                  :ripple="false"
-                  :color="`${clusterCategoriesUniqCols[clusterCategoriesSel][i]}`">
-                  <v-list-item-title v-text="clust"></v-list-item-title>
-                </v-chip>
+
+                <v-list-item-title v-text="clust"></v-list-item-title>
               </v-list-item-content>
             </v-list-item>
         </v-list-item-group>
@@ -79,6 +80,7 @@
               accept=".tsv"
               label="Upload TSV data file"
               @change="onFileChange"
+              truncate-length="30"
             ></v-file-input>
 
             <div v-show="showSpinner">
@@ -280,7 +282,7 @@
     <v-footer app :color="headerFooterColor" class="white--text">
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.10.10</span>
+      <span>Updated 2020.10.11</span>
     </v-footer>
   </v-app>
 </template>
@@ -596,7 +598,7 @@ export default {
       ];
 
       const scatter = ScatterPlot()
-        // .width(600)...since using legend, will auto calculate width
+        .width(500)
         .height(500)
         .radius(1)
         .xVar("xaxis_" + this.dimMethodSel)
@@ -605,8 +607,8 @@ export default {
         .yTitle(this.dimMethodSel + " 2")
         .constrainAxes(this.orgDataClean)
         .fillVar("cluster_" + this.clusterCategoriesSel)
-        .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel])
-        .legend(true);
+        .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel]);
+        // .legend(true);
 
       const draw = () => {
         const charts = d3
@@ -668,7 +670,6 @@ export default {
     },
 
     makeExpressionScatterData() {
-      // TODO optimize this filtering step...set a previous state flag to avoid continously creating new objects
       const currentDataCleanExpression = _.map(this.selAbs, a => {
         const d = {
           type: "expression",
@@ -826,8 +827,6 @@ export default {
       if (updatePolyGate && this.dataPolyGate.length > 0) {
         this.dataPolyGate = [];
         d3.select(".polyGateScatter").remove();
-
-        // d3.select("#clusterBrushG").select("path").attr("d", null);
         d3.select("#clusterBrushG").remove();
 
         d3.select("#mainScatter")
@@ -911,7 +910,6 @@ export default {
       }
     }
   },
-  
 };
 </script>
 
@@ -959,14 +957,15 @@ div.tooltip-donut {
 .centered-input input {
   text-align: center;
 }
-
 #antibody-list {
-  max-height: 45%;
+  max-height: 50%;
   overflow-y: auto;
 }
-
 #cluster-list {
   max-height: 35%;
   overflow-y: auto;
+}
+.v-file-input__text {
+  font-size: 14px;
 }
 </style>
