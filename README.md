@@ -27,6 +27,7 @@ Steps required to generate TSV file for visualization and analysis
     library(tidyverse)
     
     # get scaled expression values and barcode column
+    # can also use non-scaled data as well
     df_scaled_data <- data.frame(t(adt_seu@assays$adt@scale.data)) %>%
         mutate(barcode = rownames(.))
 
@@ -36,7 +37,7 @@ Steps required to generate TSV file for visualization and analysis
 
     df_final <- data.frame(
         barcode = rownames(tsne_coords),
-        cluster = adt_seu$snn_postCD45_res.1.5,
+        cluster_louvain = adt_seu$snn_postCD45_res.1.5,
         xaxis_tsne = tsne_coords[, 1],
         yaxis_tsne = tsne_coords[, 2],
         xaxis_umap = umap_coords[, 1],
@@ -54,7 +55,7 @@ Steps required to generate TSV file for visualization and analysis
 
     The resultant TSV file will look somewhat like this:
 
-    barcode | xaxis_tsne | yaxis_tsne | xaxis_umap | yaxis_umap | cluster | CD3 | CD4 | CD5 | CD8 | more_markers
+    barcode | xaxis_tsne | yaxis_tsne | xaxis_umap | yaxis_umap | cluster_louvain | CD3 | CD4 | CD5 | CD8 | more_markers
     --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
     TCGATGA | 3.214 | 3.4125 | -7.4 | 1.5 | 1 | -0.5 | 0.5 | 0.4 | 0.6 | etc...
     more cells... | | | | | | | | | | 
@@ -63,14 +64,15 @@ Steps required to generate TSV file for visualization and analysis
     - barcode
     - xaxis_?
     - yaxis_? 
-    - cluster
+    - cluster_?
 
     ...where `?` can be replaced by any alphanumeric symbols (i.e. tsne or umap).
 
+    Metadata can be stored in the cluster_? columns.
     All other columns must be expression data (i.e. must contain numerical values).
 
 3. Load up website and load in TSV dataset.
-4. Visualize and analyze to your heart's content!
+4. Visualize and analyze!
 
 ## For developers
 To build upon this tool or to run a local instance:
