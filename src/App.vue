@@ -40,6 +40,7 @@
         <v-list-item-content>
           <v-list-item-title class="title">Clusters</v-list-item-title>
         </v-list-item-content>
+
       </v-list-item>
 
       <v-list dense id="cluster-list">
@@ -276,6 +277,14 @@
             <div id="expressionScatter"></div>
           </v-col>
         </v-row>
+
+        <v-row v-show="abs.length != 0" id="cluster-heatmap-section">
+          <v-col cols="12" text-center justify-center>
+            <p class="title mb-0">Mean antibody expression value by cluster</p>
+            <div id="clusterHeatmap"></div>
+            <div id="heatmap-tooltip"></div>
+          </v-col>
+        </v-row>
       </v-container>
     </v-main>
 
@@ -293,6 +302,7 @@ import draggable from "vuedraggable";
 import * as d3 from "d3";
 import _ from "lodash";
 import ScatterPlot from "./graphs/scatterplot_canvas.js";
+import HeatmapPlot from "./graphs/heatmap.js";
 import "./graphs/polybrush.js";
 
 const availInterpolators = {
@@ -471,6 +481,8 @@ export default {
       this.drawColorScaleLegend();
 
       this.showSpinner = false;
+
+      this.makeClusterHeatmap();
     },
 
     selAbs() {
@@ -651,6 +663,54 @@ export default {
       };
 
       draw();
+    },
+
+    makeClusterHeatmap() {
+      const dataLong = [];
+      for (const cv in this.clusterCategoriesUniqVals[this.clusterCategoriesSel]) {
+        for (const a of this.abs) {
+          const cells = this.clusterCategoriesUniqVals[this.clusterCategoriesSel][cv];
+
+          const newD = {
+            cluster: cv,
+            ab: a,
+            value: d3.mean(cells, (d) => this.orgDataClean[d][a])
+          }
+
+          dataLong.push(newD);
+        }
+      }
+
+      const final_data = [{
+        key: "mainClusterHeatmap",
+        values: dataLong
+      }];
+
+      const heatmap = HeatmapPlot()
+        .width(14 * dataLong.length + 75)
+        .height(480)
+        .tileSize(14)
+        .xVar("ab")
+        .yVar("cluster")
+        .fillVar("value");
+
+      const draw = () => {
+        const charts = d3
+          .select("#clusterHeatmap")
+          .selectAll(".chart-heatmap")
+          .data(final_data);
+
+        charts
+          .enter()
+          .append("div")
+          .attr("class", "chart-heatmap")
+          .merge(charts)
+          .call(heatmap);
+
+        charts.exit().remove();
+      };
+
+      draw();      
     },
 
     updatePolyGate(brush, xScale, yScale) {
@@ -967,5 +1027,27 @@ div.tooltip-donut {
 }
 .v-file-input__text {
   font-size: 14px;
+}
+#clusterHeatmap{
+  width: 30em;
+  overflow: auto;
+  white-space: nowrap;
+}
+.chart-heatmap {
+  display: inline-block;
+}
+.chart-svg {
+  position: absolute;
+}
+div.tooltip {
+  position: absolute;
+  text-align: center;
+  margin-top: 20px;
+  margin-left: 15px;
+  padding: 2px;
+  background: #2C3E50;
+  color: #ECF0F1;
+  border: 0px;
+  border-radius: 8px;
 }
 </style>
