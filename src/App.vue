@@ -3,7 +3,31 @@
     <v-navigation-drawer v-model="drawerRight" app clipped right>
       <v-list-item>
         <v-list-item-content>
-          <v-list-item-title class="title">Antibodies</v-list-item-title>
+          <v-row>
+            <v-col cols="8">
+              <v-list-item-title class="title">Antibodies</v-list-item-title>
+            </v-col>
+            <v-col cols="4" v-show="abs.length != 0">
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on, attrs }">
+                    <div class="sidebar-icons">
+                      <v-btn
+                        small
+                        icon
+                        v-bind="attrs"
+                        v-on="on"
+                        @click="clearAllExpScatter"
+                        :disabled="selAbs.length == 0"
+                        color="#ff6b6b"
+                      >
+                        <v-icon>mdi-delete</v-icon>
+                      </v-btn>
+                    </div>
+                  </template>
+                  <span>Remove all abs</span>
+                </v-tooltip>
+            </v-col>
+          </v-row>
         </v-list-item-content>
       </v-list-item>
 
@@ -19,7 +43,7 @@
       </v-list-item>
 
       <v-list dense id="antibody-list">
-        <v-list-item-group v-model="selAbs" :multiple="true" color="indigo">
+        <v-list-item-group v-model="selAbs" :multiple="true" color="#3d5a80">
           <draggable
             v-model="abs"
             :options="{group: {name:'test', pull:'clone', put:false}, sort: false}"
@@ -38,14 +62,54 @@
 
       <v-list-item>
         <v-list-item-content>
-          <v-list-item-title class="title">Clusters</v-list-item-title>
-        </v-list-item-content>
+          <v-row>
+            <v-col cols="8">
+              <v-list-item-title class="title">Clusters</v-list-item-title>
+            </v-col>
+            <v-col cols="4" v-show="clusterCategoriesCurrentVals.length != 0" >
+              <div class="sidebar-icons">
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on, attrs }">
+                      <v-btn
+                        small
+                        icon
+                        v-bind="attrs"
+                        v-on="on"
+                        @click="clearClusterSel"
+                        :disabled="selClusterTrack.length == 0"                      
+                        color="#ff6b6b"
+                      >
+                        <v-icon>mdi-delete</v-icon>
+                      </v-btn>
+                  </template>
+                  <span>Remove all</span>
+                </v-tooltip>
 
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on, attrs }">
+                      <v-btn
+                        small
+                        icon
+                        v-bind="attrs"
+                        v-on="on"
+                        @click="addAllClusterSel"
+                        :disabled="selClusterTrack.length == clusterCategoriesCurrentVals.length"                        
+                        color="#4ecdc4"
+                      >
+                        <v-icon>mdi-check-all</v-icon>
+                      </v-btn>
+                  </template>
+                  <span>Add all</span>
+                </v-tooltip>
+              </div>
+            </v-col>
+          </v-row>
+        </v-list-item-content>
       </v-list-item>
 
       <v-list dense id="cluster-list">
         <v-list-item-group
-          v-model="selClusterTrack" :multiple="true" color="red darken-2" @change="updateCells">
+          v-model="selClusterTrack" :multiple="true" color="#ee6c4d" @change="updateCells">
             <v-list-item
               v-for="(clust, i) in clusterCategoriesCurrentVals"
               :key="`clust-${i}`"
@@ -94,18 +158,25 @@
 
 
             <div v-show="abs.length != 0">
-              <v-chip class="ma-2" color="indigo" text-color="white">
+              <v-chip class="ma-1" color="#335c67" text-color="white">
                 <v-avatar left>
                   <v-icon>mdi-flask-empty</v-icon>
                 </v-avatar>
                 {{abs.length}} features
               </v-chip>
 
-              <v-chip class="ma-2" color="teal" text-color="white">
+              <v-chip class="ma-1" color="#e09f3e" text-color="white">
                 <v-avatar left>
                   <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
                 </v-avatar>
                 {{orgDataClean.length}} cells
+              </v-chip>
+
+              <v-chip class="ma-1" color="#540b0e" text-color="white">
+                <v-avatar left>
+                  <v-icon>mdi-file-cabinet</v-icon>
+                </v-avatar>
+                {{clusterCategories.length}} cluster columns
               </v-chip>
             </div>
           </v-col>
@@ -114,7 +185,7 @@
             <p class="title mb-0">Dashboard settings</p>
             <v-row>
               <v-col cols="5">
-                <p class="subtitle-2 mb-0">Random cell filter</p>
+                <p class="subtitle-2 mb-0">Random cell downsampling</p>
                 <p class="caption">Recommended to de-select all antibodies first.</p>
                 <v-slider
                   v-model="cellsUsed"
@@ -140,7 +211,7 @@
               </v-col>
 
               <v-col cols="3">
-                <p class="subtitle-2">Dimension reduction method</p>
+                <p class="subtitle-2">Coordinate space</p>
                 <v-select
                   outlined
                   :items="dimMethods"
@@ -153,7 +224,7 @@
               </v-col>
 
               <v-col cols="4">
-                <p class="subtitle-2">Cluster category</p>
+                <p class="subtitle-2">Cluster</p>
                 <v-select
                   outlined
                   :items="clusterCategories"
@@ -295,7 +366,7 @@
     <v-footer app :color="headerFooterColor" class="white--text">
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.10.14</span>
+      <span>Updated 2020.10.15</span>
     </v-footer>
   </v-app>
 </template>
@@ -327,7 +398,7 @@ export default {
   data: () => ({
     drawerRight: null,
     title: "gCytoViewer",
-    headerFooterColor: "blue-grey",
+    headerFooterColor: "#264653",
     dataFile: null,
     header: [],
     abs: [],
@@ -873,6 +944,7 @@ export default {
 
     updateCells(event, { updatePolyGate = false, updateCluster = false } = {}) {
       if (updateCluster) {
+        // only fires when cluster category is changed...sets default to select all unique values (i.e. show all pts)
         this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]);
         this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
       }
@@ -891,6 +963,8 @@ export default {
         }, []);
 
         this.currentDataClean = this.currentDataClean.filter(x => allowedCells.includes(x))
+      } else {
+        this.currentDataClean = [];
       }
 
 
@@ -979,6 +1053,17 @@ export default {
         context.fillStyle = color(t[i]);
         context.fillRect(250 * i/t.length, 0, 250/t.length + 1, 30);
       }
+    },
+
+    clearClusterSel() {
+      this.selClusterTrack = [];
+      console.log('here');
+      this.updateCells();
+    },
+
+    addAllClusterSel() {
+      this.selClusterTrack = Array(this.clusterCategoriesCurrentVals.length).fill().map((x,i)=>i);
+      this.updateCells();
     }
   },
 };
@@ -986,9 +1071,17 @@ export default {
 
 <style>
 .title {
-  color: #455a64;
+  color: #2a9d8f;
 }
-
+.subtitle-1 {
+  color: #e76f51;
+}
+.sidebar-icons {
+  position: absolute;
+}
+.sidebar-icons:nth-child() {
+  display: inline-block;
+}
 .axis line,
 .axis path {
   fill: none;
@@ -1037,7 +1130,7 @@ div.tooltip-donut {
   font-size: 14px;
 }
 .chart-heatmap {
-  width: 960px;
+  width: 100%;
   overflow-y: auto;
   overflow-x: auto;
 }
