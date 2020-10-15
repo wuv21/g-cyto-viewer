@@ -11,6 +11,7 @@ export default function HeatmapPlot() {
         width = 1800,
         fillScale = d3.interpolateMagma,
         fillVar = "",
+        axesLabelColor = "#000000",
         xVar = "",
         yVar = "",
         tileSize = 14,
@@ -79,16 +80,18 @@ export default function HeatmapPlot() {
             
             yAxis.join(
                 enter => enter.append("text")
-                    .attr("class", "y-hm-label")
+                    .attr("class", "y-hm-label hm-axis-tick")
                     .text((d) => d)
                     .attr("x", 0)   
                     .attr("y", (d) => yScale(d))
                     .style("font-size", 9)
                     .style("text-anchor", "end")
-                    .attr("transform", "translate(" + (margin.left - 5) + "," + (tileSize / 1.3) + ")"),
+                    .attr("transform", "translate(" + (margin.left - 5) + "," + (tileSize / 1.3) + ")")
+                    .style("fill", axesLabelColor),
                 update => update
-                    .attr("x", 0)   
-                    .attr("y", (d) => yScale(d)),
+                    .attr("x", 0)
+                    .attr("y", (d) => yScale(d))
+                    .style("fill", axesLabelColor),
                 exit => exit.remove()
             )
 
@@ -98,16 +101,18 @@ export default function HeatmapPlot() {
 
             xAxis.join(
                 enter => enter.append("text")
-                    .attr("class", "x-hm-label")
+                    .attr("class", "x-hm-label hm-axis-tick")
                     .text((d) => d)
                     .attr("y", (d) => {return xScale(d) + (tileSize / 1.5)})
                     .attr("x", 9)
                     .style("font-size", 9)
                     .style("text-anchor", "start")
-                    .attr("transform", "rotate(-90)"),
+                    .attr("transform", "rotate(-90)")
+                    .style("fill", axesLabelColor),
                 update => update
                     .attr("y", (d) => {return xScale(d) + (tileSize / 1.5)})
-                    .attr("x", 9),
+                    .attr("x", 9)
+                    .style("fill", axesLabelColor),
                 exit => exit.remove()
             );
 
@@ -177,6 +182,11 @@ export default function HeatmapPlot() {
     chart.yVar = function (value) {
         if (!arguments.length) return yVar;
         yVar = value;
+        return chart;
+    };
+    chart.axesLabelColor = function (value) {
+        if (!arguments.length) return axesLabelColor;
+        axesLabelColor = value;
         return chart;
     };
     chart.tileSize = function (value) {
