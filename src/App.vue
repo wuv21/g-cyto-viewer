@@ -40,6 +40,7 @@
         <v-list-item-content>
           <v-list-item-title class="title">Clusters</v-list-item-title>
         </v-list-item-content>
+
       </v-list-item>
 
       <v-list dense id="cluster-list">
@@ -222,6 +223,18 @@
           </v-col>
         </v-row>
 
+        <v-row v-show="abs.length != 0" id="cluster-heatmap-section">
+          <v-col cols="12" text-center justify-center>
+            <p class="title mb-0">Mean antibody expression value heatmap</p>
+            <p class="caption">Showing complete dataset (no filtering) aggregated by cluster</p>
+
+            <div id="clusterHeatmap"></div>
+
+            <div id="tooltip"></div>
+
+          </v-col>
+        </v-row>
+
         <v-row v-show="abs.length != 0">
           <v-col text-center justify-center>
             <p class="title mb-0">Colored by scaled expression level</p>
@@ -282,7 +295,7 @@
     <v-footer app :color="headerFooterColor" class="white--text">
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.10.11</span>
+      <span>Updated 2020.10.14</span>
     </v-footer>
   </v-app>
 </template>
@@ -293,10 +306,13 @@ import draggable from "vuedraggable";
 import * as d3 from "d3";
 import _ from "lodash";
 import ScatterPlot from "./graphs/scatterplot_canvas.js";
+import HeatmapPlot from "./graphs/heatmap.js";
 import "./graphs/polybrush.js";
 
 const availInterpolators = {
-  "Spectral (Red - Blue)": d3.interpolateSpectral,
+  "Viridis (Purple - Blue - Yellow)": d3.interpolateViridis,
+  "Plasma (Purple - Red - Yellow)": d3.interpolatePlasma,
+  "Inferno (Black - Red - Yellow)": d3.interpolateInferno,
   "Purple - Green": d3.interpolatePRGn,
   "White - Red": d3.interpolateReds,
   "White - Blue": d3.interpolateBlues,
@@ -471,6 +487,8 @@ export default {
       this.drawColorScaleLegend();
 
       this.showSpinner = false;
+
+      this.makeClusterHeatmap();
     },
 
     selAbs() {
@@ -553,6 +571,8 @@ export default {
           .domain(this.fillScales[a].domain());
       });
 
+      this.makeClusterHeatmap();
+
       this.drawColorScaleLegend();
       if (this.selAbs.length > 0) {
         const expressionData = this.makeExpressionScatterData();
@@ -598,8 +618,8 @@ export default {
       ];
 
       const scatter = ScatterPlot()
-        .width(500)
-        .height(500)
+        .width(400)
+        .height(400)
         .radius(1)
         .xVar("xaxis_" + this.dimMethodSel)
         .yVar("yaxis_" + this.dimMethodSel)
@@ -651,6 +671,56 @@ export default {
       };
 
       draw();
+    },
+
+    makeClusterHeatmap() {
+      const dataLong = [];
+      for (const cv in this.clusterCategoriesUniqVals[this.clusterCategoriesSel]) {
+        for (const a of this.abs) {
+          const cells = this.clusterCategoriesUniqVals[this.clusterCategoriesSel][cv];
+
+          const newD = {
+            cluster: cv,
+            ab: a,
+            value: d3.mean(cells, (d) => this.orgDataClean[d][a])
+          }
+
+          dataLong.push(newD);
+        }
+      }
+
+      const final_data = [{
+        key: "mainClusterHeatmap",
+        clusterCategory: this.clusterCategoriesSel,
+        values: dataLong
+      }];
+
+      const heatmap = HeatmapPlot()
+        .width(14 * this.abs.length + 50)
+        .height(14 * Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]).length + 125)
+        .tileSize(14)
+        .xVar("ab")
+        .yVar("cluster")
+        .fillVar("value")
+        .fillScale(availInterpolators[this.expColorScaleSel]);
+
+      const draw = () => {
+        const charts = d3
+          .select("#clusterHeatmap")
+          .selectAll(".chart-heatmap")
+          .data(final_data);
+
+        charts
+          .enter()
+          .append("div")
+          .attr("class", "chart-heatmap")
+          .merge(charts)
+          .call(heatmap);
+
+        charts.exit().remove();
+      };
+
+      draw();      
     },
 
     updatePolyGate(brush, xScale, yScale) {
@@ -853,6 +923,7 @@ export default {
     },
 
     updateClusterAndCells(e) {
+      this.makeClusterHeatmap();
       this.updateCells(e, {updateCluster: true});
     },
 
@@ -940,9 +1011,6 @@ export default {
 circle.selected {
   fill: purple;
 }
-.ridgePlotExpression {
-  display: inline-block;
-}
 div.tooltip-donut {
   position: absolute;
   text-align: center;
@@ -967,5 +1035,24 @@ div.tooltip-donut {
 }
 .v-file-input__text {
   font-size: 14px;
+}
+.chart-heatmap {
+  width: 960px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+.chart-heatmap-svg {
+  display: inline-block;
+}
+div.tooltip {
+  position: absolute;
+  text-align: left;
+  margin-top: 20px;
+  margin-left: 15px;
+  padding: 0.5em;
+  background: #2C3E50;
+  color: #ECF0F1;
+  border: 0px;
+  border-radius: 8px;
 }
 </style>
