@@ -1079,7 +1079,7 @@ export default {
     
     toggleDarkTheme() {
       this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
-      this.svgTextColor = this.$vuetify.theme.dark ? "#272727" : "#f5f5f5";
+      this.svgTextColor = this.$vuetify.theme.dark ? "#f5f5f5" : "#272727";
       
       if (this.abs.length != 0) {
         const classToUpdate = ["axis-title", "chart-title", "hm-axis-tick"];
