@@ -223,6 +223,18 @@
           </v-col>
         </v-row>
 
+        <v-row v-show="abs.length != 0" id="cluster-heatmap-section">
+          <v-col cols="12" text-center justify-center>
+            <p class="title mb-0">Mean antibody expression value heatmap</p>
+            <p class="caption">Showing complete dataset (no filtering) aggregated by cluster</p>
+
+            <div id="clusterHeatmap"></div>
+
+            <div id="tooltip"></div>
+
+          </v-col>
+        </v-row>
+
         <v-row v-show="abs.length != 0">
           <v-col text-center justify-center>
             <p class="title mb-0">Colored by scaled expression level</p>
@@ -277,21 +289,13 @@
             <div id="expressionScatter"></div>
           </v-col>
         </v-row>
-
-        <v-row v-show="abs.length != 0" id="cluster-heatmap-section">
-          <v-col cols="12" text-center justify-center>
-            <p class="title mb-0">Mean antibody expression value by cluster</p>
-            <div id="clusterHeatmap"></div>
-            <div id="heatmap-tooltip"></div>
-          </v-col>
-        </v-row>
       </v-container>
     </v-main>
 
     <v-footer app :color="headerFooterColor" class="white--text">
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.10.11</span>
+      <span>Updated 2020.10.14</span>
     </v-footer>
   </v-app>
 </template>
@@ -306,7 +310,9 @@ import HeatmapPlot from "./graphs/heatmap.js";
 import "./graphs/polybrush.js";
 
 const availInterpolators = {
-  "Spectral (Red - Blue)": d3.interpolateSpectral,
+  "Viridis (Purple - Blue - Yellow)": d3.interpolateViridis,
+  "Plasma (Purple - Red - Yellow)": d3.interpolatePlasma,
+  "Inferno (Black - Red - Yellow)": d3.interpolateInferno,
   "Purple - Green": d3.interpolatePRGn,
   "White - Red": d3.interpolateReds,
   "White - Blue": d3.interpolateBlues,
@@ -565,6 +571,8 @@ export default {
           .domain(this.fillScales[a].domain());
       });
 
+      this.makeClusterHeatmap();
+
       this.drawColorScaleLegend();
       if (this.selAbs.length > 0) {
         const expressionData = this.makeExpressionScatterData();
@@ -610,8 +618,8 @@ export default {
       ];
 
       const scatter = ScatterPlot()
-        .width(500)
-        .height(500)
+        .width(400)
+        .height(400)
         .radius(1)
         .xVar("xaxis_" + this.dimMethodSel)
         .yVar("yaxis_" + this.dimMethodSel)
@@ -683,16 +691,18 @@ export default {
 
       const final_data = [{
         key: "mainClusterHeatmap",
+        clusterCategory: this.clusterCategoriesSel,
         values: dataLong
       }];
 
       const heatmap = HeatmapPlot()
-        .width(14 * dataLong.length + 75)
-        .height(480)
+        .width(14 * this.abs.length + 50)
+        .height(14 * Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]).length + 125)
         .tileSize(14)
         .xVar("ab")
         .yVar("cluster")
-        .fillVar("value");
+        .fillVar("value")
+        .fillScale(availInterpolators[this.expColorScaleSel]);
 
       const draw = () => {
         const charts = d3
@@ -913,6 +923,7 @@ export default {
     },
 
     updateClusterAndCells(e) {
+      this.makeClusterHeatmap();
       this.updateCells(e, {updateCluster: true});
     },
 
@@ -1000,9 +1011,6 @@ export default {
 circle.selected {
   fill: purple;
 }
-.ridgePlotExpression {
-  display: inline-block;
-}
 div.tooltip-donut {
   position: absolute;
   text-align: center;
@@ -1028,23 +1036,20 @@ div.tooltip-donut {
 .v-file-input__text {
   font-size: 14px;
 }
-#clusterHeatmap{
-  width: 30em;
-  overflow: auto;
-  white-space: nowrap;
-}
 .chart-heatmap {
-  display: inline-block;
+  width: 960px;
+  overflow-y: auto;
+  overflow-x: auto;
 }
-.chart-svg {
-  position: absolute;
+.chart-heatmap-svg {
+  display: inline-block;
 }
 div.tooltip {
   position: absolute;
-  text-align: center;
+  text-align: left;
   margin-top: 20px;
   margin-left: 15px;
-  padding: 2px;
+  padding: 0.5em;
   background: #2C3E50;
   color: #ECF0F1;
   border: 0px;

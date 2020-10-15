@@ -8,10 +8,12 @@ Deployed [here](https://wuv21.github.io/g-cyto-viewer/).
 
 ## Current features
 - Main scatter plot showing clusters
-- Small multiples of antibody expression
 - Single polygonal gating with dual antibody scatter plot
+- Heatmap of aggregated mean expression by cluster
+- Small multiples of antibody expression
 - Random downsampling of cells to improve efficiency as needed
 - Multiple dimension reduction visualizations allowed
+- Multiple cluster metadata
 
 ## Getting Started
 
