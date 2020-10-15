@@ -366,7 +366,7 @@
     <v-footer app :color="headerFooterColor" class="white--text">
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.10.14</span>
+      <span>Updated 2020.10.15</span>
     </v-footer>
   </v-app>
 </template>
