@@ -366,7 +366,11 @@
     <v-footer app :color="headerFooterColor" class="white--text">
       <span>Vincent Wu | Betts Lab</span>
       <v-spacer />
-      <span>Updated 2020.10.15</span>
+      <v-btn
+        small
+        @click="toggleDarkTheme"
+      >dark/light mode (beta)</v-btn>
+      <span class="ml-3">Updated 2020.10.15</span>
     </v-footer>
   </v-app>
 </template>
@@ -399,6 +403,8 @@ export default {
     drawerRight: null,
     title: "gCytoViewer",
     headerFooterColor: "#264653",
+    svgTextColor: "#000000",
+    themeLight: true,
     dataFile: null,
     header: [],
     abs: [],
@@ -698,7 +704,8 @@ export default {
         .yTitle(this.dimMethodSel + " 2")
         .constrainAxes(this.orgDataClean)
         .fillVar("cluster_" + this.clusterCategoriesSel)
-        .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel]);
+        .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel])
+        .axesTitleColor(this.svgTextColor);
         // .legend(true);
 
       const draw = () => {
@@ -773,7 +780,8 @@ export default {
         .xVar("ab")
         .yVar("cluster")
         .fillVar("value")
-        .fillScale(availInterpolators[this.expColorScaleSel]);
+        .fillScale(availInterpolators[this.expColorScaleSel])
+        .axesLabelColor(this.svgTextColor);
 
       const draw = () => {
         const charts = d3
@@ -864,7 +872,9 @@ export default {
         .xVar("xaxis_" + this.dimMethodSel)
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
-        .yTitle(this.dimMethodSel + " 2");
+        .yTitle(this.dimMethodSel + " 2")
+        .axesTitleColor(this.svgTextColor)
+        .titleColor(this.svgTextColor);
 
       const draw = function(data) {
         const charts = d3
@@ -919,7 +929,8 @@ export default {
         .xTitle(this.polyGateXAb[0])
         .yTitle(this.polyGateYAb[0])
         .fillVar("cluster_" + this.clusterCategoriesSel)
-        .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel]);
+        .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel])
+        .axesTitleColor(this.svgTextColor);
 
       const draw = function(data) {
         const charts = d3
@@ -1064,6 +1075,22 @@ export default {
     addAllClusterSel() {
       this.selClusterTrack = Array(this.clusterCategoriesCurrentVals.length).fill().map((x,i)=>i);
       this.updateCells();
+    },
+    
+    toggleDarkTheme() {
+      this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
+      this.svgTextColor = this.$vuetify.theme.dark ? "#272727" : "#f5f5f5";
+      
+      if (this.abs.length != 0) {
+        const classToUpdate = ["axis-title", "chart-title", "hm-axis-tick"];
+        classToUpdate.forEach((c) => {
+          document.getElementsByClassName(c).forEach((e) => e.style.fill = this.svgTextColor);
+        });
+
+        // update polyBrush style
+        // should be only one path here...
+        document.getElementById("clusterBrushG").getElementsByTagName("path")[0].setAttribute("fill", this.svgTextColor);
+      }
     }
   },
 };
@@ -1090,7 +1117,6 @@ export default {
 .axis-title {
   text-anchor: middle;
   font-size: 12px;
-  color: #000;
 }
 .chart {
   display: inline-block;
@@ -1100,9 +1126,6 @@ export default {
 }
 .chartexpressionScatter {
   display: inline-block;
-}
-circle.selected {
-  fill: purple;
 }
 div.tooltip-donut {
   position: absolute;

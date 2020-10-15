@@ -13,6 +13,8 @@ export default function ScatterPlot() {
         fillVar = "",
         xTitle = 'x axis',
         yTitle = 'y axis',
+        axesTitleColor = "#000000",
+        titleColor = "#000000",
         xVar = "",
         yVar = "",
         title = 'Chart title',
@@ -69,6 +71,7 @@ export default function ScatterPlot() {
                 .text(title)
                 .attr('class', 'chart-title')
                 .style('text-anchor', 'middle')
+                .style("fill", titleColor);
 
             // g element for markers
             svgEnter.append('g')
@@ -87,12 +90,14 @@ export default function ScatterPlot() {
             // Add a title g for the x axis
             svgEnter.append('text')
                 .attr('transform', 'translate(' + (margin.left + chartWidth / 2) + ',' + (chartHeight + margin.top + 40) + ')')
-                .attr('class', 'axis-title x');
+                .attr('class', 'axis-title x')
+                .style("fill", axesTitleColor);
 
             // Add a title g for the y axis
             svgEnter.append('text')
                 .attr('transform', 'translate(' + (margin.left - 40) + ',' + (margin.top + chartHeight / 2) + ') rotate(-90)')
-                .attr('class', 'axis-title y');
+                .attr('class', 'axis-title y')
+                .style("fill", axesTitleColor);
 
             // Add legend if settings are enabled for this
             // Legend derived from http://bl.ocks.org/weiglemc/6185069
@@ -259,6 +264,16 @@ export default function ScatterPlot() {
         yTitle = value;
         return chart;
     };
+    chart.axesTitleColor = function (value) {
+        if (!arguments.length) return axesTitleColor;
+        axesTitleColor = value;
+        return chart;
+    };
+    chart.titleColor = function (value) {
+        if (!arguments.length) return titleColor;
+        titleColor = value;
+        return chart;
+    };       
     chart.radius = function (value) {
         if (!arguments.length) return radius;
         radius = value;

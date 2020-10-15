@@ -5,6 +5,7 @@ dist
 *.cache
 package-lock.json
 data
+tmp
 
 # local env files
 .env.local
