@@ -156,6 +156,16 @@
               <p class="caption">Loading...please wait</p>
             </div>
 
+            <div>
+              <v-alert
+                outlined
+                type="error"
+                v-show="showAlertMsg"
+              >
+                {{alertErrorMsg}}
+              </v-alert>
+            </div>
+
 
             <div v-show="abs.length != 0">
               <v-chip class="ma-1" color="#335c67" text-color="white">
@@ -393,6 +403,24 @@ const availInterpolators = {
   "White - Blue": d3.interpolateBlues,
 };
 
+function checkMatrix(matrix, header, axes, clusters) {
+  if (!matrix) {
+    return "No file";
+  } else if (matrix.length <= 1) {
+    return "No data in file";
+  } else if (axes.length == 0) {
+    return "No axis columns";
+  } else if (axes.length % 2 != 0) {
+    return "Number of axis columns are odd";
+  } else if (clusters.length == 0) {
+    return "No cluster columns";
+  } else if (!header.includes("barcode")) {
+    return "No barcode column";
+  } else {
+    return ""
+  }
+}
+
 export default {
   name: "gCytoViewer",
   icons: {
@@ -406,6 +434,8 @@ export default {
     svgTextColor: "#000000",
     themeLight: true,
     dataFile: null,
+    alertErrorMsg: "",
+    showAlertMsg: false,
     header: [],
     abs: [],
     selAbs: [],
@@ -443,8 +473,13 @@ export default {
 
   watch: {
     dataFile(d) {
+      this.showAlertMsg = false;
+
       if (!d) {
-        return;
+        // this.showAlertMsg = true;
+        // this.alertErrorMsg = "No data in file";
+        this.showSpinner = false;
+        return; 
       }
 
       let dMat = d.split("\n");
@@ -483,9 +518,17 @@ export default {
       });
 
       // get abs
-      const metaInfoTags = ["barcode", "cluster", "tSNE_1", "tSNE_2"];
+      const metaInfoTags = ["barcode"];
       const axisCols = _.filter(this.header, i => /^(xaxis|yaxis)/.test(i));
       const clusterCols = _.filter(this.header, i => /^(cluster_)/.test(i));
+
+      const checkMsg = checkMatrix(dMat, this.header, axisCols, clusterCols);
+      if (checkMsg != "") {
+        this.showAlertMsg = true;
+        this.alertErrorMsg = checkMsg;
+        this.showSpinner = false;
+        return;
+      }
 
       this.abs = _.without(this.header, ...metaInfoTags.concat(axisCols, clusterCols));
       this.absDisplayBool = Array(this.abs.length).fill(true);
@@ -682,6 +725,8 @@ export default {
           d3.select(x).selectAll("*").remove();
         })
       }
+
+      this.showAlertMsg = false;
     },
 
     makeMainScatter() {
@@ -1068,7 +1113,6 @@ export default {
 
     clearClusterSel() {
       this.selClusterTrack = [];
-      console.log('here');
       this.updateCells();
     },
 
