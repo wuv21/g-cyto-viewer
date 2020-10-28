@@ -1009,10 +1009,6 @@ export default {
         this.currentDataClean = [];
       }
 
-      // TODO SOMETHING WRONG WITH THIS...
-      // If axes doesn't change, don't clear data...just remove cluster
-      // need to handle when this.dataPolyGate.length is 0...
-      // fix this...
       if (updatePolyGate && this.dataPolyGate.length > 0) {
         this.dataPolyGate = [];
         d3.select(".polyGateScatter").remove();
