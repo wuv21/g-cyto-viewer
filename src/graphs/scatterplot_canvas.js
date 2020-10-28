@@ -180,7 +180,7 @@ export default function ScatterPlot() {
 
             function drawCanvas() {
                 context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-
+                
                 dataBinding.each(function() {
                     //Select one of the nodes/circles
                     var node = d3.select(this);

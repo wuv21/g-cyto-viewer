@@ -636,7 +636,7 @@ export default {
       }
 
       if (
-        this.dataPolyGate.length > 0 &&
+        // this.dataPolyGate.length > 0 &&
         this.polyGateXAb.length == 1 &&
         this.polyGateYAb.length == 1
       ) {
@@ -887,25 +887,6 @@ export default {
         }
         d.values = data_ref;
 
-        // const xaxis = "xaxis_" + this.dimMethodSel;
-        // const yaxis = "yaxis_" + this.dimMethodSel;
-
-        // d.values = _.map(data_ref, i => {
-        //   const d = this.orgDataClean[i];
-
-        //   const new_d = {
-        //     barcode: d.barcode,
-        //     ab: this.abs[a],
-        //     cluster: d.cluster,
-        //     expression: d[this.abs[a]]
-        //   };
-
-        //   new_d[xaxis] = d[xaxis];
-        //   new_d[yaxis] = d[yaxis];
-
-        //   return new_d;
-        // });
-
         return d;
       });
 
@@ -1007,7 +988,7 @@ export default {
       if (updateCluster) {
         // only fires when cluster category is changed...sets default to select all unique values (i.e. show all pts)
         this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]);
-        this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
+        this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i) => i);
       }
 
       if (this.cellsUsed == this.orgDataClean.length) {
@@ -1028,7 +1009,10 @@ export default {
         this.currentDataClean = [];
       }
 
-
+      // TODO SOMETHING WRONG WITH THIS...
+      // If axes doesn't change, don't clear data...just remove cluster
+      // need to handle when this.dataPolyGate.length is 0...
+      // fix this...
       if (updatePolyGate && this.dataPolyGate.length > 0) {
         this.dataPolyGate = [];
         d3.select(".polyGateScatter").remove();
@@ -1045,11 +1029,12 @@ export default {
       this.makeExpressionScatter(expressionData);
 
       if (
-        this.dataPolyGate.length > 0 &&
+        // this.dataPolyGate.length > 0 &&
         this.polyGateXAb.length == 1 &&
         this.polyGateYAb.length == 1
       ) {
         this.updatePolyGateIndices(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
+        console.log(this.dataPolyGate);
       }
     },
 
