@@ -168,26 +168,17 @@
 
 
             <div v-show="abs.length != 0">
-              <v-chip class="ma-1" color="#335c67" text-color="white">
-                <v-avatar left>
-                  <v-icon>mdi-flask-empty</v-icon>
-                </v-avatar>
+              <status-badge chip-color="#335c67">
                 {{abs.length}} features
-              </v-chip>
+              </status-badge>
 
-              <v-chip class="ma-1" color="#e09f3e" text-color="white">
-                <v-avatar left>
-                  <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
-                </v-avatar>
+              <status-badge chip-color="#e09f3e">
                 {{orgDataClean.length}} cells
-              </v-chip>
+              </status-badge>              
 
-              <v-chip class="ma-1" color="#540b0e" text-color="white">
-                <v-avatar left>
-                  <v-icon>mdi-file-cabinet</v-icon>
-                </v-avatar>
+              <status-badge chip-color="#540b0e">
                 {{clusterCategories.length}} cluster columns
-              </v-chip>
+              </status-badge>
             </div>
           </v-col>
 
@@ -386,13 +377,19 @@
 </template>
 
 <script>
+// req'd libraries
 import "@mdi/font/css/materialdesignicons.css";
 import draggable from "vuedraggable";
 import * as d3 from "d3";
 import _ from "lodash";
+
+// graphs/polybrush
 import ScatterPlot from "./graphs/scatterplot_canvas.js";
 import HeatmapPlot from "./graphs/heatmap.js";
 import "./graphs/polybrush.js";
+
+// custom components
+import statusBadge from "./components/statusBadge.vue"
 
 const availInterpolators = {
   "Viridis (Purple - Blue - Yellow)": d3.interpolateViridis,
@@ -426,7 +423,10 @@ export default {
   icons: {
     iconfont: "mdi"
   },
-  components: { draggable: draggable },
+  components: {
+    draggable: draggable,
+    'status-badge': statusBadge
+  },
   data: () => ({
     drawerRight: null,
     title: "gCytoViewer",
@@ -476,8 +476,6 @@ export default {
       this.showAlertMsg = false;
 
       if (!d) {
-        // this.showAlertMsg = true;
-        // this.alertErrorMsg = "No data in file";
         this.showSpinner = false;
         return; 
       }
@@ -818,6 +816,9 @@ export default {
         values: dataLong
       }];
 
+      // const temp = d3.rollup(dataLong, v => d3.extent(v), d => d.ab);
+      // console.log(temp);
+
       const heatmap = HeatmapPlot()
         .width(14 * this.abs.length + 50)
         .height(14 * Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]).length + 125)
@@ -825,7 +826,8 @@ export default {
         .xVar("ab")
         .yVar("cluster")
         .fillVar("value")
-        .fillScale(availInterpolators[this.expColorScaleSel])
+        // .fillScale(availInterpolators[this.expColorScaleSel])
+        .fillScales(this.fillScales)
         .axesLabelColor(this.svgTextColor);
 
       const draw = () => {
@@ -1131,8 +1133,6 @@ export default {
           document.getElementsByClassName(c).forEach((e) => e.style.fill = this.svgTextColor);
         });
 
-        // update polyBrush style
-        // should be only one path here...
         document.getElementById("clusterBrushG").getElementsByTagName("path")[0].setAttribute("fill", this.svgTextColor);
       }
     }
