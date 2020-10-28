@@ -50,7 +50,7 @@ export default function ScatterPlot() {
             title = data.title;
 
             if (data.type === "expression") {
-                fillVar = "expression";
+                fillVar = data.title;
                 fillScale = data.fillScale;
             }
 
@@ -99,42 +99,6 @@ export default function ScatterPlot() {
                 .attr('class', 'axis-title y')
                 .style("fill", axesTitleColor);
 
-            // Add legend if settings are enabled for this
-            // Legend derived from http://bl.ocks.org/weiglemc/6185069
-            // TODO legend not updating correctly
-            // if (legend && fillScale != "") {
-            //     svgEnter.append('g')
-            //         .attr('transform', 'translate(' + (width - margin.right - 30) + ',' + margin.top + ')')
-            //         .attr('class', 'legend');
-
-            //     ele.select('.legend').selectAll('.legend-g')
-            //         .data(fillScale.domain().sort(), (d) => fillVar + d)
-            //         .join(
-            //             enter => {
-            //                 console.log(enter);
-            //                 enter = enter.append("g")
-            //                 .attr('class', 'legend-g')
-            //                 .attr("transform", (d, i) => "translate(0," + i * 20 + ")")
-                            
-            //                 enter.append("rect")
-            //                 .attr("x", 5)
-            //                 .attr("width", 12)
-            //                 .attr("height", 12)
-            //                 .style("fill", fillScale);
-
-            //                 enter.append("text")
-            //                     .attr("x", 25)
-            //                     .attr("y", 6)
-            //                     .attr("dy", ".35em")
-            //                     .style("text-anchor", "start")
-            //                     .style("font-size", 12)
-            //                     .text((d) => d)
-                            
-            //                 return(enter)
-            //             },
-            //             exit => exit.remove());
-            // }
-
             // Define xAxis and yAxis functions
             const xAxis = d3.axisBottom();
             const yAxis = d3.axisLeft();
@@ -156,10 +120,10 @@ export default function ScatterPlot() {
 
             const padScale = 0.1;
 
-            const xExtent = d3.extent(axesData, (d) => +d[xVar]);
+            const xExtent = d3.extent(axesData, (d) => +data.orgData[d][xVar]);
             xScale.range([0, chartWidth]).domain(makePaddedDomain(xExtent, padScale));
 
-            const yExtent = d3.extent(axesData, (d) => +d[yVar]);
+            const yExtent = d3.extent(axesData, (d) => +data.orgData[d][yVar]);
             yScale.range([chartHeight, 0]).domain(makePaddedDomain(yExtent, padScale));
 
             // Update axes
@@ -176,21 +140,21 @@ export default function ScatterPlot() {
             var dataContainer = d3.select(detachedContainer);
 
             // // Draw markers
-            const circles = dataContainer.selectAll('circle').data(data.values, (d) => d["barcode"]);
+            const circles = dataContainer.selectAll('circle').data(data.values, (d) => data.orgData[d]["barcode"]);
 
             // Use the .enter() method to get entering elements, and assign initial position
             const dataBinding = circles.join(
                 enter => enter.append('circle')
-                    .attr('fill', (d) => fillScale(d[fillVar]))
+                    .attr('fill', (d) => fillScale(data.orgData[d][fillVar]))
                     .style('opacity', .8)
-                    .attr('cx', (d) => xScale(d[xVar]))
-                    .attr('cy', (d) => yScale(d[yVar]))
+                    .attr('cx', (d) => xScale(data.orgData[d][xVar]))
+                    .attr('cy', (d) => yScale(data.orgData[d][yVar]))
                     .attr('r', radius)
-                    .attr("id", (d) => d.barcode),
+                    .attr("id", (d) => data.orgData[d]["barcode"]),
                 update => update
-                    .attr('fill', (d) => fillScale(d[fillVar]))
-                    .attr('cx', (d) => xScale(d[xVar]))
-                    .attr('cy', (d) => yScale(d[yVar])),
+                    .attr('fill', (d) => fillScale(data.orgData[d][fillVar]))
+                    .attr('cx', (d) => xScale(data.orgData[d][xVar]))
+                    .attr('cy', (d) => yScale(data.orgData[d][yVar])),
                 exit => exit.remove()
             );
             

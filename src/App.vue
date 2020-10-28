@@ -733,7 +733,8 @@ export default {
           key: "mainPlot",
           title: "",
           type: "cluster",
-          values: _.map(this.currentDataClean, (i) => this.orgDataClean[i])
+          orgData: this.orgDataClean,
+          values: this.currentDataClean
         }
       ];
 
@@ -745,11 +746,10 @@ export default {
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
         .yTitle(this.dimMethodSel + " 2")
-        .constrainAxes(this.orgDataClean)
+        .constrainAxes(Array.from({length: this.orgDataClean.length}, (x, i) => i))
         .fillVar("cluster_" + this.clusterCategoriesSel)
         .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel])
         .axesTitleColor(this.svgTextColor);
-        // .legend(true);
 
       const draw = () => {
         const charts = d3
@@ -776,7 +776,7 @@ export default {
               this.dataPolyGate = [];
             })
             .on("end", () => {
-              this.updatePolyGate(brush, scatter.xScale(), scatter.yScale());
+              this.updatePolyGateIndices(brush, scatter.xScale(), scatter.yScale());
             });
 
           d3.select("#mainScatter")
@@ -849,7 +849,7 @@ export default {
       draw();      
     },
 
-    updatePolyGate(brush, xScale, yScale) {
+    updatePolyGateIndices(brush, xScale, yScale) {
       const dataTemp = [];
       const xvar = "xaxis_" + this.dimMethodSel;
       const yvar = "yaxis_" + this.dimMethodSel;
@@ -858,7 +858,7 @@ export default {
         const d = this.orgDataClean[i];
 
         if (brush.isWithinExtent(xScale(d[xvar]), yScale(d[yvar]))) {
-          dataTemp.push(d);
+          dataTemp.push(i);
         }
       });
 
@@ -871,6 +871,7 @@ export default {
           type: "expression",
           key: a,
           title: this.abs[a],
+          orgData: this.orgDataClean,
           fillScale: this.fillScales[this.abs[a]]
         };
 
@@ -884,25 +885,26 @@ export default {
 
           data_ref = currentDataCleanFilt;
         }
+        d.values = data_ref;
 
-        const xaxis = "xaxis_" + this.dimMethodSel;
-        const yaxis = "yaxis_" + this.dimMethodSel;
+        // const xaxis = "xaxis_" + this.dimMethodSel;
+        // const yaxis = "yaxis_" + this.dimMethodSel;
 
-        d.values = _.map(data_ref, i => {
-          const d = this.orgDataClean[i];
+        // d.values = _.map(data_ref, i => {
+        //   const d = this.orgDataClean[i];
 
-          const new_d = {
-            barcode: d.barcode,
-            ab: this.abs[a],
-            cluster: d.cluster,
-            expression: d[this.abs[a]]
-          };
+        //   const new_d = {
+        //     barcode: d.barcode,
+        //     ab: this.abs[a],
+        //     cluster: d.cluster,
+        //     expression: d[this.abs[a]]
+        //   };
 
-          new_d[xaxis] = d[xaxis];
-          new_d[yaxis] = d[yaxis];
+        //   new_d[xaxis] = d[xaxis];
+        //   new_d[yaxis] = d[yaxis];
 
-          return new_d;
-        });
+        //   return new_d;
+        // });
 
         return d;
       });
@@ -915,7 +917,7 @@ export default {
         .width(275)
         .height(275)
         .radius(0.5)
-        .constrainAxes(this.orgDataClean)
+        .constrainAxes(Array.from({length: this.orgDataClean.length}, (x, i) => i))
         .xVar("xaxis_" + this.dimMethodSel)
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
@@ -962,6 +964,7 @@ export default {
           key: "polygate-" + this.polyGateXAb[0] + this.polyGateYAb[0],
           title: "",
           type: "cluster",
+          orgData: this.orgDataClean,
           values: this.dataPolyGate
         }
       ];
@@ -972,7 +975,7 @@ export default {
         .radius(1.5)
         .xVar(this.polyGateXAb[0])
         .yVar(this.polyGateYAb[0])
-        .constrainAxes(this.orgDataClean)
+        .constrainAxes(Array.from({length: this.orgDataClean.length}, (x, i) => i))
         .xTitle(this.polyGateXAb[0])
         .yTitle(this.polyGateYAb[0])
         .fillVar("cluster_" + this.clusterCategoriesSel)
@@ -1046,7 +1049,7 @@ export default {
         this.polyGateXAb.length == 1 &&
         this.polyGateYAb.length == 1
       ) {
-        this.updatePolyGate(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
+        this.updatePolyGateIndices(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
       }
     },
 
