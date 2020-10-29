@@ -9,14 +9,14 @@ export default function HeatmapPlot() {
     // Set default values
     let height = 400,
         width = 1800,
-        fillScale = d3.interpolateMagma,
+        fillScales = "",
         fillVar = "",
         axesLabelColor = "#000000",
         xVar = "",
         yVar = "",
         tileSize = 14,
         margin = {
-            left: 50,
+            left: 75,
             bottom: 100,
             top: 100,
             right: 0,
@@ -70,9 +70,10 @@ export default function HeatmapPlot() {
                 .domain(uniqY)
                 .range([0, uniqY.length * tileSize]);
 
-            const dataExtent = d3.extent(data.values, (d) => d[fillVar])
-            fillScale = d3.scaleSequential(fillScale)
-                .domain([dataExtent[0], dataExtent[1]]);
+            // const dataExtents = d3.rollup(data.values, v => d3.extent, d => d.fillVar)
+            // const dataExtent = d3.extent(data.values, (d) => d[fillVar])
+            // fillScale = d3.scaleSequential(fillScale)
+            //     .domain([dataExtent[0], dataExtent[1]]);
 
             const yAxis = d3.select(".heatmap-y")
                 .selectAll(".y-hm-label")
@@ -129,7 +130,7 @@ export default function HeatmapPlot() {
                 .attr("class", "tile")
                 .attr("width", tileSize - 1)
                 .attr("height", tileSize - 1)
-                .style("fill", (d) => fillScale(d[fillVar]))
+                .style("fill", (d) => fillScales[d[xVar]](d[fillVar]))
                 .on("mouseover", function(d) {
                     d3.select(this)
                         .transition()
@@ -150,7 +151,7 @@ export default function HeatmapPlot() {
                 }),
                 update => update.attr("x", (d) => xScale(d[xVar]))
                     .attr("y", (d) => yScale(d[yVar]))
-                    .style("fill", (d) => fillScale(d[fillVar])),
+                    .style("fill", (d) => fillScales[d[xVar]](d[fillVar])),
                 exit => exit.remove()
             );
         });
@@ -199,9 +200,9 @@ export default function HeatmapPlot() {
         fillVar = value;
         return chart;
     };
-    chart.fillScale = function (value) {
-        if (!arguments.length) return fillScale;
-        fillScale = value;
+    chart.fillScales = function (value) {
+        if (!arguments.length) return fillScales;
+        fillScales = value;
         return chart;
     };
     return chart;

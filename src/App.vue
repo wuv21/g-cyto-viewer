@@ -168,26 +168,17 @@
 
 
             <div v-show="abs.length != 0">
-              <v-chip class="ma-1" color="#335c67" text-color="white">
-                <v-avatar left>
-                  <v-icon>mdi-flask-empty</v-icon>
-                </v-avatar>
+              <status-badge chip-color="#335c67">
                 {{abs.length}} features
-              </v-chip>
+              </status-badge>
 
-              <v-chip class="ma-1" color="#e09f3e" text-color="white">
-                <v-avatar left>
-                  <v-icon>mdi-checkbox-blank-circle-outline</v-icon>
-                </v-avatar>
-                {{orgDataClean.length}} cells
-              </v-chip>
+              <status-badge chip-color="#e09f3e">
+                {{dataCiteLength}} cells
+              </status-badge>              
 
-              <v-chip class="ma-1" color="#540b0e" text-color="white">
-                <v-avatar left>
-                  <v-icon>mdi-file-cabinet</v-icon>
-                </v-avatar>
+              <status-badge chip-color="#540b0e">
                 {{clusterCategories.length}} cluster columns
-              </v-chip>
+              </status-badge>
             </div>
           </v-col>
 
@@ -201,7 +192,7 @@
                   v-model="cellsUsed"
                   class="align-center"
                   @input="updateCells"
-                  :max="orgDataClean.length"
+                  :max="dataCiteLength"
                   min="0"
                   hide-details
                 >
@@ -211,7 +202,7 @@
                       class="ma-0 pa-0"
                       hide-details
                       single-line
-                      :max="orgDataClean.length"
+                      :max="dataCiteLength"
                       min="0"
                       type="number"
                       style="width: 5em;"
@@ -386,13 +377,19 @@
 </template>
 
 <script>
+// req'd libraries
 import "@mdi/font/css/materialdesignicons.css";
 import draggable from "vuedraggable";
 import * as d3 from "d3";
 import _ from "lodash";
+
+// graphs/polybrush
 import ScatterPlot from "./graphs/scatterplot_canvas.js";
 import HeatmapPlot from "./graphs/heatmap.js";
 import "./graphs/polybrush.js";
+
+// custom components
+import statusBadge from "./components/statusBadge.vue"
 
 const availInterpolators = {
   "Viridis (Purple - Blue - Yellow)": d3.interpolateViridis,
@@ -426,7 +423,10 @@ export default {
   icons: {
     iconfont: "mdi"
   },
-  components: { draggable: draggable },
+  components: {
+    draggable: draggable,
+    'status-badge': statusBadge
+  },
   data: () => ({
     drawerRight: null,
     title: "gCytoViewer",
@@ -442,8 +442,8 @@ export default {
     selClusterTrack: [],
     absSearch: null,
     absDisplayBool: [],
-    dataCite: [],
-    orgDataClean: [],
+    dataCite: {},
+    dataCiteLength: 0,
     currentDataClean: [],
     dataPolyGate: [],
     polyGateXAb: [],
@@ -476,8 +476,6 @@ export default {
       this.showAlertMsg = false;
 
       if (!d) {
-        // this.showAlertMsg = true;
-        // this.alertErrorMsg = "No data in file";
         this.showSpinner = false;
         return; 
       }
@@ -550,18 +548,11 @@ export default {
 
       this.clusterCategoriesSel = this.clusterCategories[0];
 
-      // reformat to d3 friendly
-      const dataCiteKeys = Object.keys(this.dataCite);
-      for (let i = 0; i < this.dataCite["barcode"].length; i++) {
-        const d = {};
-        dataCiteKeys.forEach(x => {
-          d[x] = this.dataCite[x][i];
-        });
-        this.orgDataClean.push(d);
-      }
+      // set length of full dataset since this will need to be done once only
+      this.dataCiteLength = this.dataCite["barcode"].length;
 
       // set default to full dataset
-      this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
+      this.currentDataClean = [...Array(this.dataCiteLength).keys()].map(i => i);
 
       // precalculate d3 scales
       this.abs.forEach(a => {
@@ -576,17 +567,17 @@ export default {
 
 
       // precalculate cluster scale
-      for (const [i, d] of this.orgDataClean.entries()) {
-        for (const c of this.clusterCategories) {
-          const c_val = d["cluster_" + c];
-          if (!(c in this.clusterCategoriesUniqVals)) {
-            this.clusterCategoriesUniqVals[c] = {};
-          }
+      for (const c of this.clusterCategories) {
+        this.clusterCategoriesUniqVals[c] = {};
 
-          if (c_val in this.clusterCategoriesUniqVals[c]) {
-            this.clusterCategoriesUniqVals[c][c_val].push(i);
+        const allCatVals = this.dataCite["cluster_" + c];
+        for (let i = 0; i < allCatVals.length; i++) {
+          const dCatVal = allCatVals[i];
+
+          if (dCatVal in this.clusterCategoriesUniqVals[c]) {
+            this.clusterCategoriesUniqVals[c][dCatVal].push(i);
           } else {
-            this.clusterCategoriesUniqVals[c][c_val] = [i];
+            this.clusterCategoriesUniqVals[c][dCatVal] = [i];
           }
         }
       }
@@ -603,12 +594,10 @@ export default {
       this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
 
       this.makeMainScatter();
-
       this.drawColorScaleLegend();
+      this.makeClusterHeatmap();
 
       this.showSpinner = false;
-
-      this.makeClusterHeatmap();
     },
 
     selAbs() {
@@ -633,12 +622,12 @@ export default {
     },
 
     dataPolyGate() {
-      if (this.orgDataClean.length == 0) {
+      if (this.dataCiteLength == 0) {
         return;
       }
 
       if (
-        this.dataPolyGate.length > 0 &&
+        // this.dataPolyGate.length > 0 &&
         this.polyGateXAb.length == 1 &&
         this.polyGateYAb.length == 1
       ) {
@@ -647,7 +636,7 @@ export default {
     },
 
     polyGateXAb(newVal, prevVal) {
-      if (this.orgDataClean.length == 0) {
+      if (this.dataCiteLength == 0) {
         return;
       }
       this.polyGateXAb = this.checkPolyGateAb(prevVal, newVal);
@@ -658,7 +647,7 @@ export default {
     },
 
     polyGateYAb(newVal, prevVal) {
-      if (this.orgDataClean.length == 0) {
+      if (this.dataCiteLength == 0) {
         return;
       }
 
@@ -670,7 +659,7 @@ export default {
     },
 
     absSearch() {
-      if (this.orgDataClean.length == 0) {
+      if (this.dataCiteLength == 0) {
         return;
       }
 
@@ -735,7 +724,8 @@ export default {
           key: "mainPlot",
           title: "",
           type: "cluster",
-          values: _.map(this.currentDataClean, (i) => this.orgDataClean[i])
+          orgData: this.dataCite,
+          values: this.currentDataClean
         }
       ];
 
@@ -747,11 +737,10 @@ export default {
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
         .yTitle(this.dimMethodSel + " 2")
-        .constrainAxes(this.orgDataClean)
+        .constrainAxes(Array.from({length: this.dataCiteLength}, (x, i) => i))
         .fillVar("cluster_" + this.clusterCategoriesSel)
         .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel])
         .axesTitleColor(this.svgTextColor);
-        // .legend(true);
 
       const draw = () => {
         const charts = d3
@@ -778,7 +767,7 @@ export default {
               this.dataPolyGate = [];
             })
             .on("end", () => {
-              this.updatePolyGate(brush, scatter.xScale(), scatter.yScale());
+              this.updatePolyGateIndices(brush, scatter.xScale(), scatter.yScale());
             });
 
           d3.select("#mainScatter")
@@ -805,7 +794,7 @@ export default {
           const newD = {
             cluster: cv,
             ab: a,
-            value: d3.mean(cells, (d) => this.orgDataClean[d][a])
+            value: d3.mean(cells, (d) => this.dataCite[a][d])
           }
 
           dataLong.push(newD);
@@ -818,6 +807,9 @@ export default {
         values: dataLong
       }];
 
+      // const temp = d3.rollup(dataLong, v => d3.extent(v), d => d.ab);
+      // console.log(temp);
+
       const heatmap = HeatmapPlot()
         .width(14 * this.abs.length + 50)
         .height(14 * Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]).length + 125)
@@ -825,7 +817,8 @@ export default {
         .xVar("ab")
         .yVar("cluster")
         .fillVar("value")
-        .fillScale(availInterpolators[this.expColorScaleSel])
+        // .fillScale(availInterpolators[this.expColorScaleSel])
+        .fillScales(this.fillScales)
         .axesLabelColor(this.svgTextColor);
 
       const draw = () => {
@@ -847,16 +840,14 @@ export default {
       draw();      
     },
 
-    updatePolyGate(brush, xScale, yScale) {
+    updatePolyGateIndices(brush, xScale, yScale) {
       const dataTemp = [];
       const xvar = "xaxis_" + this.dimMethodSel;
       const yvar = "yaxis_" + this.dimMethodSel;
 
       this.currentDataClean.forEach(i => {
-        const d = this.orgDataClean[i];
-
-        if (brush.isWithinExtent(xScale(d[xvar]), yScale(d[yvar]))) {
-          dataTemp.push(d);
+        if (brush.isWithinExtent(xScale(this.dataCite[xvar][i]), yScale(this.dataCite[yvar][i]))) {
+          dataTemp.push(i);
         }
       });
 
@@ -869,38 +860,21 @@ export default {
           type: "expression",
           key: a,
           title: this.abs[a],
+          orgData: this.dataCite,
           fillScale: this.fillScales[this.abs[a]]
         };
 
         let data_ref = this.currentDataClean;
         if (this.enableThresh) {
           const currentDataCleanFilt = _.filter(this.currentDataClean, i => {
-            const d = this.orgDataClean[i];
+            const d = this.dataCite[this.abs[a]][i];
 
-            return d[this.abs[a]] >= this.expThresh;
+            return d >= this.expThresh;
           });
 
           data_ref = currentDataCleanFilt;
         }
-
-        const xaxis = "xaxis_" + this.dimMethodSel;
-        const yaxis = "yaxis_" + this.dimMethodSel;
-
-        d.values = _.map(data_ref, i => {
-          const d = this.orgDataClean[i];
-
-          const new_d = {
-            barcode: d.barcode,
-            ab: this.abs[a],
-            cluster: d.cluster,
-            expression: d[this.abs[a]]
-          };
-
-          new_d[xaxis] = d[xaxis];
-          new_d[yaxis] = d[yaxis];
-
-          return new_d;
-        });
+        d.values = data_ref;
 
         return d;
       });
@@ -913,7 +887,7 @@ export default {
         .width(275)
         .height(275)
         .radius(0.5)
-        .constrainAxes(this.orgDataClean)
+        .constrainAxes(Array.from({length: this.dataCiteLength}, (x, i) => i))
         .xVar("xaxis_" + this.dimMethodSel)
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
@@ -960,6 +934,7 @@ export default {
           key: "polygate-" + this.polyGateXAb[0] + this.polyGateYAb[0],
           title: "",
           type: "cluster",
+          orgData: this.dataCite,
           values: this.dataPolyGate
         }
       ];
@@ -970,7 +945,7 @@ export default {
         .radius(1.5)
         .xVar(this.polyGateXAb[0])
         .yVar(this.polyGateYAb[0])
-        .constrainAxes(this.orgDataClean)
+        .constrainAxes(Array.from({length: this.dataCiteLength}, (x, i) => i))
         .xTitle(this.polyGateXAb[0])
         .yTitle(this.polyGateYAb[0])
         .fillVar("cluster_" + this.clusterCategoriesSel)
@@ -1002,13 +977,13 @@ export default {
       if (updateCluster) {
         // only fires when cluster category is changed...sets default to select all unique values (i.e. show all pts)
         this.clusterCategoriesCurrentVals = Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]);
-        this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
+        this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i) => i);
       }
 
-      if (this.cellsUsed == this.orgDataClean.length) {
-        this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
+      if (this.cellsUsed == this.dataCiteLength) {
+        this.currentDataClean = [...Array(this.dataCiteLength).keys()].map(i => i);
       } else {
-        this.currentDataClean = this.genRandomIndices(this.cellsUsed, this.orgDataClean.length);
+        this.currentDataClean = this.genRandomIndices(this.cellsUsed, this.dataCiteLength);
       }
 
       if (this.selClusterTrack.length != 0) {
@@ -1022,7 +997,6 @@ export default {
       } else {
         this.currentDataClean = [];
       }
-
 
       if (updatePolyGate && this.dataPolyGate.length > 0) {
         this.dataPolyGate = [];
@@ -1040,11 +1014,11 @@ export default {
       this.makeExpressionScatter(expressionData);
 
       if (
-        this.dataPolyGate.length > 0 &&
+        // this.dataPolyGate.length > 0 &&
         this.polyGateXAb.length == 1 &&
         this.polyGateYAb.length == 1
       ) {
-        this.updatePolyGate(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
+        this.updatePolyGateIndices(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
       }
     },
 
@@ -1131,8 +1105,6 @@ export default {
           document.getElementsByClassName(c).forEach((e) => e.style.fill = this.svgTextColor);
         });
 
-        // update polyBrush style
-        // should be only one path here...
         document.getElementById("clusterBrushG").getElementsByTagName("path")[0].setAttribute("fill", this.svgTextColor);
       }
     }
