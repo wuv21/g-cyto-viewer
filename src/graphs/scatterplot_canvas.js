@@ -120,10 +120,10 @@ export default function ScatterPlot() {
 
             const padScale = 0.1;
 
-            const xExtent = d3.extent(axesData, (d) => +data.orgData[d][xVar]);
+            const xExtent = d3.extent(axesData, (d) => +data.orgData[xVar][d]);
             xScale.range([0, chartWidth]).domain(makePaddedDomain(xExtent, padScale));
 
-            const yExtent = d3.extent(axesData, (d) => +data.orgData[d][yVar]);
+            const yExtent = d3.extent(axesData, (d) => +data.orgData[yVar][d]);
             yScale.range([chartHeight, 0]).domain(makePaddedDomain(yExtent, padScale));
 
             // Update axes
@@ -140,21 +140,21 @@ export default function ScatterPlot() {
             var dataContainer = d3.select(detachedContainer);
 
             // // Draw markers
-            const circles = dataContainer.selectAll('circle').data(data.values, (d) => data.orgData[d]["barcode"]);
+            const circles = dataContainer.selectAll('circle').data(data.values, (d) => data.orgData["barcode"][d]);
 
             // Use the .enter() method to get entering elements, and assign initial position
             const dataBinding = circles.join(
                 enter => enter.append('circle')
-                    .attr('fill', (d) => fillScale(data.orgData[d][fillVar]))
+                    .attr('fill', (d) => fillScale(data.orgData[fillVar][d]))
                     .style('opacity', .8)
-                    .attr('cx', (d) => xScale(data.orgData[d][xVar]))
-                    .attr('cy', (d) => yScale(data.orgData[d][yVar]))
+                    .attr('cx', (d) => xScale(data.orgData[xVar][d]))
+                    .attr('cy', (d) => yScale(data.orgData[yVar][d]))
                     .attr('r', radius)
-                    .attr("id", (d) => data.orgData[d]["barcode"]),
+                    .attr("id", (d) => data.orgData["barcode"][d]),
                 update => update
-                    .attr('fill', (d) => fillScale(data.orgData[d][fillVar]))
-                    .attr('cx', (d) => xScale(data.orgData[d][xVar]))
-                    .attr('cy', (d) => yScale(data.orgData[d][yVar])),
+                    .attr('fill', (d) => fillScale(data.orgData[fillVar][d]))
+                    .attr('cx', (d) => xScale(data.orgData[xVar][d]))
+                    .attr('cy', (d) => yScale(data.orgData[yVar][d])),
                 exit => exit.remove()
             );
             

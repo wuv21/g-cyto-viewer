@@ -173,7 +173,7 @@
               </status-badge>
 
               <status-badge chip-color="#e09f3e">
-                {{orgDataClean.length}} cells
+                {{dataCiteLength}} cells
               </status-badge>              
 
               <status-badge chip-color="#540b0e">
@@ -192,7 +192,7 @@
                   v-model="cellsUsed"
                   class="align-center"
                   @input="updateCells"
-                  :max="orgDataClean.length"
+                  :max="dataCiteLength"
                   min="0"
                   hide-details
                 >
@@ -202,7 +202,7 @@
                       class="ma-0 pa-0"
                       hide-details
                       single-line
-                      :max="orgDataClean.length"
+                      :max="dataCiteLength"
                       min="0"
                       type="number"
                       style="width: 5em;"
@@ -442,8 +442,8 @@ export default {
     selClusterTrack: [],
     absSearch: null,
     absDisplayBool: [],
-    dataCite: [],
-    orgDataClean: [],
+    dataCite: {},
+    dataCiteLength: 0,
     currentDataClean: [],
     dataPolyGate: [],
     polyGateXAb: [],
@@ -548,18 +548,11 @@ export default {
 
       this.clusterCategoriesSel = this.clusterCategories[0];
 
-      // reformat to d3 friendly
-      const dataCiteKeys = Object.keys(this.dataCite);
-      for (let i = 0; i < this.dataCite["barcode"].length; i++) {
-        const d = {};
-        dataCiteKeys.forEach(x => {
-          d[x] = this.dataCite[x][i];
-        });
-        this.orgDataClean.push(d);
-      }
+      // set length of full dataset since this will need to be done once only
+      this.dataCiteLength = this.dataCite["barcode"].length;
 
       // set default to full dataset
-      this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
+      this.currentDataClean = [...Array(this.dataCiteLength).keys()].map(i => i);
 
       // precalculate d3 scales
       this.abs.forEach(a => {
@@ -574,17 +567,17 @@ export default {
 
 
       // precalculate cluster scale
-      for (const [i, d] of this.orgDataClean.entries()) {
-        for (const c of this.clusterCategories) {
-          const c_val = d["cluster_" + c];
-          if (!(c in this.clusterCategoriesUniqVals)) {
-            this.clusterCategoriesUniqVals[c] = {};
-          }
+      for (const c of this.clusterCategories) {
+        this.clusterCategoriesUniqVals[c] = {};
 
-          if (c_val in this.clusterCategoriesUniqVals[c]) {
-            this.clusterCategoriesUniqVals[c][c_val].push(i);
+        const allCatVals = this.dataCite["cluster_" + c];
+        for (let i = 0; i < allCatVals.length; i++) {
+          const dCatVal = allCatVals[i];
+
+          if (dCatVal in this.clusterCategoriesUniqVals[c]) {
+            this.clusterCategoriesUniqVals[c][dCatVal].push(i);
           } else {
-            this.clusterCategoriesUniqVals[c][c_val] = [i];
+            this.clusterCategoriesUniqVals[c][dCatVal] = [i];
           }
         }
       }
@@ -601,12 +594,10 @@ export default {
       this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i)=>i);
 
       this.makeMainScatter();
-
       this.drawColorScaleLegend();
+      this.makeClusterHeatmap();
 
       this.showSpinner = false;
-
-      this.makeClusterHeatmap();
     },
 
     selAbs() {
@@ -631,7 +622,7 @@ export default {
     },
 
     dataPolyGate() {
-      if (this.orgDataClean.length == 0) {
+      if (this.dataCiteLength == 0) {
         return;
       }
 
@@ -645,7 +636,7 @@ export default {
     },
 
     polyGateXAb(newVal, prevVal) {
-      if (this.orgDataClean.length == 0) {
+      if (this.dataCiteLength == 0) {
         return;
       }
       this.polyGateXAb = this.checkPolyGateAb(prevVal, newVal);
@@ -656,7 +647,7 @@ export default {
     },
 
     polyGateYAb(newVal, prevVal) {
-      if (this.orgDataClean.length == 0) {
+      if (this.dataCiteLength == 0) {
         return;
       }
 
@@ -668,7 +659,7 @@ export default {
     },
 
     absSearch() {
-      if (this.orgDataClean.length == 0) {
+      if (this.dataCiteLength == 0) {
         return;
       }
 
@@ -733,7 +724,7 @@ export default {
           key: "mainPlot",
           title: "",
           type: "cluster",
-          orgData: this.orgDataClean,
+          orgData: this.dataCite,
           values: this.currentDataClean
         }
       ];
@@ -746,7 +737,7 @@ export default {
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
         .yTitle(this.dimMethodSel + " 2")
-        .constrainAxes(Array.from({length: this.orgDataClean.length}, (x, i) => i))
+        .constrainAxes(Array.from({length: this.dataCiteLength}, (x, i) => i))
         .fillVar("cluster_" + this.clusterCategoriesSel)
         .fillScale(this.clusterCategoriesScales[this.clusterCategoriesSel])
         .axesTitleColor(this.svgTextColor);
@@ -803,7 +794,7 @@ export default {
           const newD = {
             cluster: cv,
             ab: a,
-            value: d3.mean(cells, (d) => this.orgDataClean[d][a])
+            value: d3.mean(cells, (d) => this.dataCite[a][d])
           }
 
           dataLong.push(newD);
@@ -855,9 +846,7 @@ export default {
       const yvar = "yaxis_" + this.dimMethodSel;
 
       this.currentDataClean.forEach(i => {
-        const d = this.orgDataClean[i];
-
-        if (brush.isWithinExtent(xScale(d[xvar]), yScale(d[yvar]))) {
+        if (brush.isWithinExtent(xScale(this.dataCite[xvar][i]), yScale(this.dataCite[yvar][i]))) {
           dataTemp.push(i);
         }
       });
@@ -871,16 +860,16 @@ export default {
           type: "expression",
           key: a,
           title: this.abs[a],
-          orgData: this.orgDataClean,
+          orgData: this.dataCite,
           fillScale: this.fillScales[this.abs[a]]
         };
 
         let data_ref = this.currentDataClean;
         if (this.enableThresh) {
           const currentDataCleanFilt = _.filter(this.currentDataClean, i => {
-            const d = this.orgDataClean[i];
+            const d = this.dataCite[this.abs[a]][i];
 
-            return d[this.abs[a]] >= this.expThresh;
+            return d >= this.expThresh;
           });
 
           data_ref = currentDataCleanFilt;
@@ -898,7 +887,7 @@ export default {
         .width(275)
         .height(275)
         .radius(0.5)
-        .constrainAxes(Array.from({length: this.orgDataClean.length}, (x, i) => i))
+        .constrainAxes(Array.from({length: this.dataCiteLength}, (x, i) => i))
         .xVar("xaxis_" + this.dimMethodSel)
         .yVar("yaxis_" + this.dimMethodSel)
         .xTitle(this.dimMethodSel + " 1")
@@ -945,7 +934,7 @@ export default {
           key: "polygate-" + this.polyGateXAb[0] + this.polyGateYAb[0],
           title: "",
           type: "cluster",
-          orgData: this.orgDataClean,
+          orgData: this.dataCite,
           values: this.dataPolyGate
         }
       ];
@@ -956,7 +945,7 @@ export default {
         .radius(1.5)
         .xVar(this.polyGateXAb[0])
         .yVar(this.polyGateYAb[0])
-        .constrainAxes(Array.from({length: this.orgDataClean.length}, (x, i) => i))
+        .constrainAxes(Array.from({length: this.dataCiteLength}, (x, i) => i))
         .xTitle(this.polyGateXAb[0])
         .yTitle(this.polyGateYAb[0])
         .fillVar("cluster_" + this.clusterCategoriesSel)
@@ -991,10 +980,10 @@ export default {
         this.selClusterTrack = this.clusterCategoriesCurrentVals.map((x,i) => i);
       }
 
-      if (this.cellsUsed == this.orgDataClean.length) {
-        this.currentDataClean = [...Array(this.orgDataClean.length).keys()].map(i => i);
+      if (this.cellsUsed == this.dataCiteLength) {
+        this.currentDataClean = [...Array(this.dataCiteLength).keys()].map(i => i);
       } else {
-        this.currentDataClean = this.genRandomIndices(this.cellsUsed, this.orgDataClean.length);
+        this.currentDataClean = this.genRandomIndices(this.cellsUsed, this.dataCiteLength);
       }
 
       if (this.selClusterTrack.length != 0) {
@@ -1030,7 +1019,6 @@ export default {
         this.polyGateYAb.length == 1
       ) {
         this.updatePolyGateIndices(this.polyGateBrush, this.mainScatterXScale, this.mainScatterYScale);
-        console.log(this.dataPolyGate);
       }
     },
 
