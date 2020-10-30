@@ -1,73 +1,83 @@
 <template>
   <v-app id="gCytoViewer">
     <v-navigation-drawer v-model="drawerRight" app clipped right>
-      <v-list-item>
-        <v-list-item-content>
-          <v-row>
-            <v-col cols="8">
-              <v-list-item-title class="title">Antibodies</v-list-item-title>
-            </v-col>
-            <v-col cols="4" v-show="abs.length != 0">
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ on, attrs }">
-                    <div class="sidebar-icons">
-                      <v-btn
-                        small
-                        icon
-                        v-bind="attrs"
-                        v-on="on"
-                        @click="clearAllExpScatter"
-                        :disabled="selAbs.length == 0"
-                        color="#ff6b6b"
-                      >
-                        <v-icon>mdi-delete</v-icon>
-                      </v-btn>
-                    </div>
-                  </template>
-                  <span>Remove all abs</span>
-                </v-tooltip>
-            </v-col>
-          </v-row>
-        </v-list-item-content>
-      </v-list-item>
 
-      <v-list-item>
-        <v-text-field
-          class="mt-2"
-          v-model="absSearch"
-          label="Search for abs"
-          v-show="abs.length != 0"
-          dense
-          clearable
-        ></v-text-field>
-      </v-list-item>
+      <div id="antibody-panel" class="d-flex flex-column">
+        <div>
+          <v-list-item>
+            <v-list-item-content>
+              <div class="d-flex flex-row">
+                  <v-list-item-title class="title">Antibodies</v-list-item-title>
+                  <v-tooltip bottom>
+                    <template v-slot:activator="{ on, attrs }">
+                      <div class="sidebar-icons">
+                        <v-btn
+                          small
+                          icon
+                          v-bind="attrs"
+                          v-on="on"
+                          @click="clearAllExpScatter"
+                          :disabled="selAbs.length == 0"
+                          color="#ff6b6b"
+                        >
+                          <v-icon>mdi-delete</v-icon>
+                        </v-btn>
+                      </div>
+                    </template>
+                    <span>Remove all abs</span>
+                  </v-tooltip>
+              </div>
 
-      <v-list dense id="antibody-list">
-        <v-list-item-group v-model="selAbs" :multiple="true" color="#3d5a80">
-          <draggable
-            v-model="abs"
-            :options="{group: {name:'test', pull:'clone', put:false}, sort: false}"
-            style="min-height:10px"
-          >
-            <v-list-item v-for="(ab, i) in abs" :key="`ab-${i}`" v-show="absDisplayBool[i]">
-              <v-list-item-content>
-                <v-list-item-title v-text="ab"></v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
-          </draggable>
-        </v-list-item-group>
-      </v-list>
+              <!-- <v-row>
+                <v-col cols="8">
+                </v-col>
+                <v-col cols="4" v-show="abs.length != 0">
 
-      <v-divider></v-divider>
+                </v-col>
+              </v-row> -->
+            </v-list-item-content>
+          </v-list-item>
+        </div>
 
-      <v-list-item>
-        <v-list-item-content>
-          <v-row>
-            <v-col cols="8">
-              <v-list-item-title class="title">Clusters</v-list-item-title>
-            </v-col>
-            <v-col cols="4" v-show="clusterCategoriesCurrentVals.length != 0" >
-              <div class="sidebar-icons">
+        <div>
+          <v-list-item>
+            <v-text-field
+              class="mt-2"
+              v-model="absSearch"
+              label="Search for abs"
+              v-show="abs.length != 0"
+              dense
+              clearable
+            ></v-text-field>
+          </v-list-item>
+        </div>
+
+        <div id="antibody-list" class="flex-grow-1">
+          <v-list dense id="antibody-list">
+            <v-list-item-group v-model="selAbs" :multiple="true" color="#3d5a80">
+              <draggable
+                v-model="abs"
+                :options="{group: {name:'test', pull:'clone', put:false}, sort: false}"
+                style="min-height:10px"
+              >
+                <v-list-item v-for="(ab, i) in abs" :key="`ab-${i}`" v-show="absDisplayBool[i]">
+                  <v-list-item-content>
+                    <v-list-item-title v-text="ab"></v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+              </draggable>
+            </v-list-item-group>
+          </v-list>
+        </div>
+
+      </div>
+
+      <div id="cluster-panel" class="d-flex flex-column">
+        <div>
+          <v-list-item>
+            <v-list-item-content>
+              <div class="d-flex flex-row">
+                <v-list-item-title class="title">Clusters</v-list-item-title>
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
                       <v-btn
@@ -100,34 +110,36 @@
                       </v-btn>
                   </template>
                   <span>Add all</span>
-                </v-tooltip>
+                </v-tooltip>              
               </div>
-            </v-col>
-          </v-row>
-        </v-list-item-content>
-      </v-list-item>
+            </v-list-item-content>
+          </v-list-item>
+        </div>
 
-      <v-list dense id="cluster-list">
-        <v-list-item-group
-          v-model="selClusterTrack" :multiple="true" color="#ee6c4d" @change="updateCells">
-            <v-list-item
-              v-for="(clust, i) in clusterCategoriesCurrentVals"
-              :key="`clust-${i}`"
-              :value="i"
-            >
-              <v-list-item-icon class="mr-3">
-                <v-icon
-                  :color="`${clusterCategoriesUniqCols[clusterCategoriesSel][i]}`"
-                >mdi-checkbox-blank-circle</v-icon>
-              </v-list-item-icon>
+        <div id="cluster-list" class="flex-grow-1">
+          <v-list dense id="cluster-list">
+            <v-list-item-group
+              v-model="selClusterTrack" :multiple="true" color="#ee6c4d" @change="updateCells">
+                <v-list-item
+                  v-for="(clust, i) in clusterCategoriesCurrentVals"
+                  :key="`clust-${i}`"
+                  :value="i"
+                >
+                  <v-list-item-icon class="mr-3">
+                    <v-icon
+                      :color="`${clusterCategoriesUniqCols[clusterCategoriesSel][i]}`"
+                    >mdi-checkbox-blank-circle</v-icon>
+                  </v-list-item-icon>
 
-              <v-list-item-content>
+                  <v-list-item-content>
 
-                <v-list-item-title v-text="clust"></v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
-        </v-list-item-group>
-      </v-list>
+                    <v-list-item-title v-text="clust"></v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+            </v-list-item-group>
+          </v-list>
+        </div>
+      </div>
     </v-navigation-drawer>
 
     <v-app-bar app clipped-right :color="headerFooterColor" dark>
@@ -298,7 +310,7 @@
         <v-row v-show="abs.length != 0" id="cluster-heatmap-section">
           <v-col cols="12" text-center justify-center>
             <p class="title mb-0">Mean antibody expression value heatmap</p>
-            <p class="caption">Showing complete dataset (no filtering) aggregated by cluster</p>
+            <p class="caption">Showing complete dataset (no filtering) aggregated by cluster. Colors scaled by each antibody.</p>
 
             <div id="clusterHeatmap"></div>
 
@@ -448,11 +460,11 @@ export default {
     dataPolyGate: [],
     polyGateXAb: [],
     polyGateYAb: [],
+    dataHeatmap: [],
     polyGateBrush: null,
     mainScatterXScale: null,
     mainScatterYScale: null,
     fillScales: [],
-    absDensities: [],
     enableThresh: false,
     expThresh: 0,
     minThresh: 0,
@@ -1120,10 +1132,10 @@ export default {
   color: #e76f51;
 }
 .sidebar-icons {
-  position: absolute;
+  /* position: absolute; */
 }
 .sidebar-icons:nth-child() {
-  display: inline-block;
+  /* display: inline-block; */
 }
 .axis line,
 .axis path {
@@ -1143,27 +1155,8 @@ export default {
 .chartexpressionScatter {
   display: inline-block;
 }
-div.tooltip-donut {
-  position: absolute;
-  text-align: center;
-  padding: 0.5rem;
-  background: #ffffff;
-  color: #313639;
-  border: 1px solid #313639;
-  border-radius: 8px;
-  pointer-events: none;
-  font-size: 1.3rem;
-}
 .centered-input input {
   text-align: center;
-}
-#antibody-list {
-  max-height: 50%;
-  overflow-y: auto;
-}
-#cluster-list {
-  max-height: 35%;
-  overflow-y: auto;
 }
 .v-file-input__text {
   font-size: 14px;
@@ -1179,12 +1172,23 @@ div.tooltip-donut {
 div.tooltip {
   position: absolute;
   text-align: left;
-  margin-top: 20px;
   margin-left: 15px;
   padding: 0.5em;
   background: #2C3E50;
   color: #ECF0F1;
   border: 0px;
   border-radius: 8px;
+}
+#antibody-panel {
+  height: 60%;
+}
+#cluster-panel {
+  height: 40%;
+}
+#antibody-list {
+  overflow-y: auto;
+}
+#cluster-list {
+  overflow-y: auto;
 }
 </style>
