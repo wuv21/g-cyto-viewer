@@ -27,14 +27,6 @@
                     <span>Remove all abs</span>
                   </v-tooltip>
               </div>
-
-              <!-- <v-row>
-                <v-col cols="8">
-                </v-col>
-                <v-col cols="4" v-show="abs.length != 0">
-
-                </v-col>
-              </v-row> -->
             </v-list-item-content>
           </v-list-item>
         </div>
@@ -309,8 +301,8 @@
 
         <v-row v-show="abs.length != 0" id="cluster-heatmap-section">
           <v-col cols="12" text-center justify-center>
-            <p class="title mb-0">Mean antibody expression value heatmap</p>
-            <p class="caption">Showing complete dataset (no filtering) aggregated by cluster. Colors scaled by each antibody.</p>
+            <p class="title mb-0">Mean expression value heatmap</p>
+            <p class="caption">Showing complete dataset (no filtering) aggregated by cluster. Colors scaled by each column.</p>
 
             <div id="clusterHeatmap"></div>
 
@@ -382,8 +374,8 @@
       <v-btn
         small
         @click="toggleDarkTheme"
-      >dark/light mode (beta)</v-btn>
-      <span class="ml-3">Updated 2020.10.15</span>
+      >dark/light mode</v-btn>
+      <span class="ml-3">Updated 2020.10.30</span>
     </v-footer>
   </v-app>
 </template>
@@ -594,8 +586,21 @@ export default {
         }
       }
 
+      function generateColors(dataDomain) {
+        const availColors = [];
+        for (let i = 0; i < dataDomain.length; i++) {
+          availColors.push(d3.interpolateTurbo(i / dataDomain.length));
+        }
+
+        return(availColors);
+      }
+
       for (const c in this.clusterCategoriesUniqVals) {
-        this.clusterCategoriesScales[c] = d3.scaleOrdinal(d3.schemePaired).domain(Object.keys(this.clusterCategoriesUniqVals[c]));
+        const clusterVals = Object.keys(this.clusterCategoriesUniqVals[c]);
+        const clusterValsRange = generateColors(clusterVals);
+
+        // this.clusterCategoriesScales[c] = d3.scaleOrdinal().domain(Object.keys(this.clusterCategoriesUniqVals[c]));
+        this.clusterCategoriesScales[c] = d3.scaleOrdinal().domain(Object.keys(this.clusterCategoriesUniqVals[c])).range(clusterValsRange);
         this.clusterCategoriesUniqCols[c] = _.map(Object.keys(this.clusterCategoriesUniqVals[c]), (x) => this.clusterCategoriesScales[c](x));
       }
 
@@ -823,7 +828,7 @@ export default {
       // console.log(temp);
 
       const heatmap = HeatmapPlot()
-        .width(14 * this.abs.length + 50)
+        .width(14 * this.abs.length + 90)
         .height(14 * Object.keys(this.clusterCategoriesUniqVals[this.clusterCategoriesSel]).length + 125)
         .tileSize(14)
         .xVar("ab")
@@ -1130,12 +1135,6 @@ export default {
 }
 .subtitle-1 {
   color: #e76f51;
-}
-.sidebar-icons {
-  /* position: absolute; */
-}
-.sidebar-icons:nth-child() {
-  /* display: inline-block; */
 }
 .axis line,
 .axis path {
